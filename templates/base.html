@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Pinay Cupid{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --crimson:     #8b1a2e;
+      --crimson-mid: #a82540;
+      --crimson-soft:#f2dde2;
+      --cream:       #fdf9f5;
+      --cream-mid:   #f5ede4;
+      --cream-border:#e6d8cc;
+      --ink:         #1e1414;
+      --ink-mid:     #4a2f2f;
+      --ink-light:   #8a6a6a;
+      --white:       #ffffff;
+      --gold:        #b8964e;
+      --gold-light:  #e8d5a3;
+      --shadow-sm:   0 1px 4px rgba(30,20,20,0.07);
+      --shadow:      0 4px 20px rgba(30,20,20,0.09);
+      --shadow-lg:   0 12px 40px rgba(30,20,20,0.13);
+      --radius:      4px;
+      --radius-lg:   10px;
+    }
+
+    /* ── DARK MODE ───────────────────────── */
+    [data-theme="dark"] {
+      --crimson:     #c45070;
+      --crimson-mid: #d4607e;
+      --crimson-soft:#3a1520;
+      --cream:       #141010;
+      --cream-mid:   #1e1818;
+      --cream-border:#2e2424;
+      --ink:         #f0e8e8;
+      --ink-mid:     #c8b4b4;
+      --ink-light:   #8a7070;
+      --white:       #1e1818;
+      --gold:        #c9a85c;
+      --gold-light:  #d4b87a;
+      --shadow-sm:   0 1px 4px rgba(0,0,0,0.3);
+      --shadow:      0 4px 20px rgba(0,0,0,0.4);
+      --shadow-lg:   0 12px 40px rgba(0,0,0,0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── NAV ─────────────────────────────── */
+    nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--cream-border);
+      padding: 0 2.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      text-decoration: none;
+    }
+    .brand-heart {
+      width: 28px;
+      height: 28px;
+      color: var(--crimson);
+    }
+    .nav-brand .brand-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.3px;
+    }
+    .nav-brand .brand-tag {
+      font-size: 0.6rem;
+      color: var(--ink-light);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      display: block;
+      line-height: 1;
+      font-weight: 400;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+    }
+    .nav-links a {
+      color: var(--ink-mid);
+      text-decoration: none;
+      padding: 0.45rem 0.9rem;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 400;
+      letter-spacing: 0.2px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-links a:hover {
+      color: var(--crimson);
+      background: var(--crimson-soft);
+    }
+    .nav-links .btn-nav {
+      background: var(--crimson);
+      color: var(--white);
+      font-weight: 500;
+      padding: 0.42rem 1.2rem;
+      letter-spacing: 0.3px;
+      border-radius: var(--radius);
+      margin-left: 0.4rem;
+    }
+    .nav-links .btn-nav:hover {
+      background: var(--crimson-mid);
+      color: var(--white);
+    }
+
+    /* ── MAIN ────────────────────────────── */
+    main { flex: 1; }
+
+    /* ── FLASH MESSAGES ─────────────────── */
+    .flash-wrap { max-width: 1200px; margin: 1.2rem auto 0; padding: 0 2rem; }
+    .flash {
+      padding: 0.8rem 1.1rem;
+      border-radius: var(--radius);
+      margin-bottom: 0.5rem;
+      font-size: 0.86rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border: 1px solid transparent;
+    }
+    .flash-success {
+      background: #f0faf3;
+      color: #1a5c34;
+      border-color: #b8dfc8;
+    }
+    .flash-error {
+      background: #fdf2f4;
+      color: var(--crimson);
+      border-color: #e8bec6;
+    }
+    .flash-info {
+      background: #f0f6fd;
+      color: #1a4a7a;
+      border-color: #b8d0ed;
+    }
+
+    /* ── CARDS ───────────────────────────── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--cream-border);
+      overflow: hidden;
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* ── BUTTONS ─────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.62rem 1.6rem;
+      border-radius: var(--radius);
+      font-size: 0.86rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      letter-spacing: 0.2px;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-primary {
+      background: var(--crimson);
+      color: var(--white);
+      border-color: var(--crimson);
+    }
+    .btn-primary:hover {
+      background: var(--crimson-mid);
+      border-color: var(--crimson-mid);
+    }
+    .btn-outline {
+      background: transparent;
+      border-color: var(--crimson);
+      color: var(--crimson);
+    }
+    .btn-outline:hover {
+      background: var(--crimson-soft);
+    }
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--cream-border);
+      color: var(--ink-mid);
+    }
+    .btn-ghost:hover {
+      background: var(--cream-mid);
+    }
+    .btn-gold {
+      background: var(--gold);
+      color: var(--white);
+      border-color: var(--gold);
+    }
+    .btn-gold:hover {
+      background: #9e7c38;
+      border-color: #9e7c38;
+    }
+    .btn-sm { padding: 0.38rem 0.9rem; font-size: 0.78rem; }
+    .btn-block { width: 100%; justify-content: center; }
+
+    /* ── FORMS ───────────────────────────── */
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.35rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--ink-mid);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .form-control {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--cream-border);
+      border-radius: var(--radius);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      background: var(--white);
+      color: var(--ink);
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--crimson);
+      box-shadow: 0 0 0 3px rgba(139,26,46,0.08);
+    }
+    select.form-control { cursor: pointer; }
+    textarea.form-control { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+    /* ── SECTION HEADER ──────────────────── */
+    .section-header { text-align: center; padding: 3.5rem 1.5rem 1.5rem; }
+    .section-header h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.4rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.2px;
+    }
+    .section-header p {
+      color: var(--ink-light);
+      font-size: 0.9rem;
+      font-weight: 300;
+    }
+    .divider-ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.7rem;
+      margin: 0.7rem 0 1.2rem;
+    }
+    .divider-ornament::before,
+    .divider-ornament::after {
+      content: '';
+      height: 1px;
+      width: 48px;
+      background: var(--cream-border);
+    }
+    /* Simple inline SVG heart ornament */
+    .heart-ornament {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      color: var(--crimson);
+      opacity: 0.7;
+    }
+
+    /* ── FOOTER ──────────────────────────── */
+    footer {
+      background: var(--ink);
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.82rem;
+      font-weight: 300;
+    }
+    footer a {
+      color: rgba(255,255,255,0.6);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    footer a:hover { color: rgba(255,255,255,0.9); }
+    .footer-divider {
+      margin: 0 0.6rem;
+      opacity: 0.3;
+    }
+
+    /* ── UTILITIES ───────────────────────── */
+    .text-center { text-align: center; }
+    .text-muted   { color: var(--ink-light); font-size: 0.84rem; }
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .mt-3 { margin-top: 1.8rem; }
+    .mb-2 { margin-bottom: 1rem; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.18rem 0.65rem;
+      border-radius: 2px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .badge-red    { background: var(--crimson-soft); color: var(--crimson); }
+    .badge-cream  { background: var(--cream-mid); color: var(--ink-mid); }
+    .badge-green  { background: #e8f5ee; color: #1a5c34; }
+
+    /* ── RESPONSIVE ──────────────────────── */
+    @media (max-width: 768px) {
+      .nav-brand .brand-name { font-size: 1.3rem; }
+      .nav-links a:not(.btn-nav) { display: none; }
+      nav { padding: 0 1.2rem; }
+    }
+
+    /* ── THEME TOGGLE ────────────────────── */
+    .theme-toggle {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius);
+      border: 1px solid var(--cream-border);
+      background: var(--cream-mid);
+      color: var(--ink-mid);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 0.4rem;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    .theme-toggle:hover {
+      background: var(--crimson-soft);
+      border-color: var(--crimson);
+      color: var(--crimson);
+    }
+    .theme-toggle svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+    /* Show sun in dark mode, moon in light mode */
+    .icon-sun  { display: none; }
+    .icon-moon { display: block; }
+    [data-theme="dark"] .icon-sun  { display: block; }
+    [data-theme="dark"] .icon-moon { display: none; }
+
+    /* Dark mode: nav background */
+    [data-theme="dark"] nav {
+      background: #1a1212;
+      border-bottom-color: #2e2424;
+    }
+    [data-theme="dark"] footer {
+      background: #0e0a0a;
+    }
+
+    /* ── LANGUAGE TOGGLE ─────────────────── */
+    .lang-toggle {
+      height: 34px;
+      padding: 0 0.75rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--cream-border);
+      background: var(--cream-mid);
+      color: var(--ink-mid);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .lang-toggle:hover {
+      background: var(--crimson-soft);
+      border-color: var(--crimson);
+      color: var(--crimson);
+    }
+    /* The two label spans inside the button */
+    .lang-en, .lang-fil {
+      transition: opacity 0.2s, transform 0.2s;
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+    }
+    /* Default: show EN, hide FIL */
+    .lang-en  { opacity: 1; }
+    .lang-fil { opacity: 0; }
+    /* Filipino active: show FIL, hide EN */
+    [data-lang="fil"] .lang-en  { opacity: 0; }
+    [data-lang="fil"] .lang-fil { opacity: 1; }
+    /* Highlight when Filipino is active */
+    [data-lang="fil"] .lang-toggle {
+      background: var(--crimson-soft);
+      border-color: var(--crimson);
+      color: var(--crimson);
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <!-- Simple heart SVG -->
+      <svg class="brand-heart" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
+      </svg>
+      <div>
+        <span class="brand-name">Pinay Cupid</span>
+        <span class="brand-tag">Find Your Perfect Match</span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="/browse">Browse</a>
+      {% if current_user %}
+        <a href="/profile">My Profile</a>
+        {% if current_user.role == 'admin' %}
+          <a href="/admin">Admin</a>
+        {% endif %}
+        <a href="/logout" class="btn-nav btn">Sign Out</a>
+      {% else %}
+        <a href="/login">Sign In</a>
+        <a href="/register" class="btn-nav btn">Join Free</a>
+      {% endif %}
+      <!-- Theme toggle -->
+      <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="4"/>
+          <line x1="12" y1="2" x2="12" y2="4"/>
+          <line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="2" y1="12" x2="4" y2="12"/>
+          <line x1="20" y1="12" x2="22" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <!-- Language toggle -->
+      <button class="lang-toggle" id="langToggle" title="Switch language / Baguhin ang wika" aria-label="Toggle language">
+        <span class="lang-en">EN</span>
+        <span class="lang-fil">FIL</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main>
+  {% if messages %}
+  <div class="flash-wrap">
+    {% for msg in messages %}
+      <div class="flash flash-{{ msg.type }}">
+        {% if msg.type == 'success' %}<i class="fa-solid fa-circle-check"></i>
+        {% elif msg.type == 'error' %}<i class="fa-solid fa-circle-exclamation"></i>
+        {% else %}<i class="fa-solid fa-circle-info"></i>{% endif %}
+        {{ msg.text }}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer>
+  <p style="margin-bottom:0.5rem;font-family:'Cormorant Garamond',serif;font-size:1rem;color:rgba(255,255,255,0.35);letter-spacing:2px;">
+    PINAY CUPID
+  </p>
+  <p>
+    &copy; 2025 Pinay Cupid — Where Love Begins
+    <span class="footer-divider">|</span>
+    <a href="#">Privacy</a>
+    <span class="footer-divider">|</span>
+    <a href="#">Terms</a>
+    <span class="footer-divider">|</span>
+    <a href="#">Contact</a>
+  </p>
+</footer>
+
+<script>
+  (function () {
+    const THEME_KEY = 'pc-theme';
+    const LANG_KEY  = 'pc-lang';
+    const root = document.documentElement;
+
+    /* ── THEME ─────────────────────────── */
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    if (savedTheme === 'dark') root.setAttribute('data-theme', 'dark');
+
+    document.getElementById('themeToggle').addEventListener('click', function () {
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        root.removeAttribute('data-theme');
+        localStorage.setItem(THEME_KEY, 'light');
+      } else {
+        root.setAttribute('data-theme', 'dark');
+        localStorage.setItem(THEME_KEY, 'dark');
+      }
+    });
+
+    /* ── LANGUAGE ───────────────────────── */
+    function applyLang(lang) {
+      if (lang === 'fil') {
+        root.setAttribute('data-lang', 'fil');
+      } else {
+        root.removeAttribute('data-lang');
+      }
+      /* Swap all elements that carry data-en / data-fil attributes */
+      document.querySelectorAll('[data-en][data-fil]').forEach(el => {
+        el.textContent = lang === 'fil' ? el.dataset.fil : el.dataset.en;
+      });
+      /* Also handle elements where the text content acts as the link label */
+      document.querySelectorAll('a[data-en][data-fil]').forEach(el => {
+        el.textContent = lang === 'fil' ? el.dataset.fil : el.dataset.en;
+      });
+    }
+
+    const savedLang = localStorage.getItem(LANG_KEY) || 'en';
+    applyLang(savedLang);
+
+    document.getElementById('langToggle').addEventListener('click', function () {
+      const current = localStorage.getItem(LANG_KEY) || 'en';
+      const next = current === 'fil' ? 'en' : 'fil';
+      localStorage.setItem(LANG_KEY, next);
+      applyLang(next);
+    });
+  })();
+</script>
+
+</body>
+</html>

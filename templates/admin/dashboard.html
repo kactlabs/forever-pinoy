@@ -1,0 +1,102 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon stat-icon-red"><span style="color:var(--red-main);">👥</span></div>
+    <div class="stat-info">
+      <strong>{{ stats.total_users }}</strong>
+      <span>Total Members</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon stat-icon-green"><span>✅</span></div>
+    <div class="stat-info">
+      <strong>{{ stats.active_users }}</strong>
+      <span>Active Members</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon stat-icon-blue"><span>👩</span></div>
+    <div class="stat-info">
+      <strong>{{ stats.female_users }}</strong>
+      <span>Female Profiles</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon stat-icon-gold"><span>👨</span></div>
+    <div class="stat-info">
+      <strong>{{ stats.male_users }}</strong>
+      <span>Male Profiles</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon stat-icon-red"><span>🆕</span></div>
+    <div class="stat-info">
+      <strong>{{ stats.new_today }}</strong>
+      <span>New Today</span>
+    </div>
+  </div>
+</div>
+
+<!-- Recent members table -->
+<div class="table-card">
+  <div class="table-header">
+    <h3><i class="fa-solid fa-users"></i> Recent Members</h3>
+    <a href="/admin/users" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Gender</th>
+        <th>Location</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th>Joined</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in recent_users %}
+      <tr>
+        <td>{{ user.id }}</td>
+        <td>
+          <strong>{{ user.username }}</strong>
+          {% if user.full_name %}<br/><small style="color:var(--text-light);">{{ user.full_name }}</small>{% endif %}
+        </td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.gender.value if user.gender else '—' }}</td>
+        <td>{{ user.location or '—' }}</td>
+        <td><span class="badge badge-{{ user.role.value }}">{{ user.role.value }}</span></td>
+        <td>
+          {% if user.is_active %}
+            <span class="badge badge-active">Active</span>
+          {% else %}
+            <span class="badge badge-inactive">Inactive</span>
+          {% endif %}
+        </td>
+        <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
+        <td>
+          <a href="/admin/users/{{ user.id }}/toggle" class="btn btn-sm {% if user.is_active %}btn-danger{% else %}btn-success{% endif %}">
+            {% if user.is_active %}<i class="fa-solid fa-ban"></i>{% else %}<i class="fa-solid fa-check"></i>{% endif %}
+          </a>
+          <a href="/admin/users/{{ user.id }}/delete" class="btn btn-sm btn-danger"
+             onclick="return confirm('Delete {{ user.username }}? This cannot be undone.')">
+            <i class="fa-solid fa-trash"></i>
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="text-align:center;color:var(--text-light);padding:2rem;">No members yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

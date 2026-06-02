@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}{{ user.full_name or user.username }} — Pinay Cupid{% endblock %}
+
+{% block head %}
+<style>
+  .profile-page { max-width: 980px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+
+  /* Hero band */
+  .profile-hero {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 2.5rem;
+    align-items: start;
+    padding-bottom: 2rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--cream-border);
+  }
+  .avatar-wrap {
+    width: 180px; height: 180px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--cream-border);
+    background: var(--cream-mid);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .avatar-placeholder {
+    font-size: 3.5rem;
+    color: var(--cream-border);
+  }
+
+  .profile-meta {}
+  .profile-meta .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    font-weight: 400;
+    margin-bottom: 0.6rem;
+  }
+  .profile-meta h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.3rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.4rem;
+    line-height: 1.1;
+  }
+  .profile-meta .sub {
+    font-size: 0.84rem;
+    color: var(--ink-light);
+    font-weight: 300;
+    margin-bottom: 1rem;
+  }
+  .profile-meta .sub strong { font-weight: 500; color: var(--ink-mid); }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.3rem; }
+  .tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: var(--cream);
+    border: 1px solid var(--cream-border);
+    border-radius: 2px;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.76rem;
+    color: var(--ink-mid);
+    font-weight: 400;
+  }
+  .tag-pill svg {
+    width: 12px; height: 12px;
+    color: var(--crimson);
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+  .profile-actions { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+
+  /* Body grid */
+  .profile-body {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 2rem;
+    align-items: start;
+  }
+  .detail-block {
+    background: var(--white);
+    border: 1px solid var(--cream-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 1.2rem;
+  }
+  .detail-block:last-child { margin-bottom: 0; }
+  .detail-block-header {
+    padding: 0.85rem 1.3rem;
+    border-bottom: 1px solid var(--cream-border);
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    font-weight: 500;
+  }
+  .detail-block-body { padding: 1.2rem 1.3rem; }
+  .bio-text {
+    font-size: 0.88rem;
+    color: var(--ink-mid);
+    line-height: 1.8;
+    font-weight: 300;
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--cream);
+    font-size: 0.84rem;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .label { color: var(--ink-light); font-weight: 300; }
+  .detail-row .value { font-weight: 500; color: var(--ink); text-align: right; }
+
+  .back-link {
+    margin-top: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--ink-light);
+    text-decoration: none;
+    font-weight: 300;
+    transition: color 0.18s;
+  }
+  .back-link:hover { color: var(--crimson); }
+
+  @media(max-width:720px) {
+    .profile-hero { grid-template-columns: 1fr; }
+    .avatar-wrap { width: 130px; height: 130px; }
+    .profile-body { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+
+  <!-- Hero -->
+  <div class="profile-hero">
+    <div class="avatar-wrap">
+      {% if user.profile_photo %}
+        <img src="/static/uploads/{{ user.profile_photo }}" alt="{{ user.full_name or user.username }}" />
+      {% else %}
+        <div class="avatar-placeholder"><i class="fa-regular fa-user"></i></div>
+      {% endif %}
+    </div>
+    <div class="profile-meta">
+      <p class="eyebrow">Member Profile</p>
+      <h1>{{ user.full_name or user.username }}</h1>
+      <p class="sub">
+        @{{ user.username }}
+        {% if user.age %} &middot; <strong>{{ user.age }}</strong> years old{% endif %}
+        {% if user.location %} &middot; {{ user.location }}{% endif %}
+      </p>
+
+      <div class="tags">
+        {% if user.gender %}
+          <span class="tag-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="5"/><line x1="12" y1="14" x2="12" y2="22"/><line x1="9" y1="19" x2="15" y2="19"/></svg>
+            {{ user.gender.value | title }}
+          </span>
+        {% endif %}
+        {% if user.religion %}
+          <span class="tag-pill">{{ user.religion }}</span>
+        {% endif %}
+        {% if user.occupation %}
+          <span class="tag-pill">{{ user.occupation }}</span>
+        {% endif %}
+        <span class="tag-pill">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="color:#4caf7d;opacity:1;">
+            <circle cx="12" cy="12" r="5"/>
+          </svg>
+          Active
+        </span>
+      </div>
+
+      <div class="profile-actions">
+        {% if current_user and current_user.id != user.id %}
+          <a href="mailto:{{ user.email }}" class="btn btn-primary btn-sm">Send Message</a>
+          <button class="btn btn-ghost btn-sm">Send Wink</button>
+        {% elif current_user and current_user.id == user.id %}
+          <a href="/profile/edit" class="btn btn-primary btn-sm">Edit Profile</a>
+        {% else %}
+          <a href="/register" class="btn btn-primary btn-sm">Join to Connect</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="profile-body">
+    <div>
+      {% if user.bio %}
+      <div class="detail-block">
+        <div class="detail-block-header">About</div>
+        <div class="detail-block-body">
+          <p class="bio-text">{{ user.bio }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if user.looking_for %}
+      <div class="detail-block">
+        <div class="detail-block-header">Looking For</div>
+        <div class="detail-block-body">
+          <p class="bio-text">{{ user.looking_for }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if not user.bio and not user.looking_for %}
+      <div class="detail-block">
+        <div class="detail-block-body" style="text-align:center;padding:2.5rem;color:var(--ink-light);">
+          <i class="fa-regular fa-file-lines" style="font-size:2rem;margin-bottom:0.8rem;display:block;opacity:0.3;"></i>
+          <p style="font-size:0.86rem;font-weight:300;">This member hasn't added a bio yet.</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div>
+      <div class="detail-block">
+        <div class="detail-block-header">Details</div>
+        <div class="detail-block-body">
+          {% if user.age %}
+          <div class="detail-row">
+            <span class="label">Age</span>
+            <span class="value">{{ user.age }}</span>
+          </div>
+          {% endif %}
+          {% if user.gender %}
+          <div class="detail-row">
+            <span class="label">Gender</span>
+            <span class="value">{{ user.gender.value | title }}</span>
+          </div>
+          {% endif %}
+          {% if user.location %}
+          <div class="detail-row">
+            <span class="label">Location</span>
+            <span class="value">{{ user.location }}</span>
+          </div>
+          {% endif %}
+          {% if user.religion %}
+          <div class="detail-row">
+            <span class="label">Religion</span>
+            <span class="value">{{ user.religion }}</span>
+          </div>
+          {% endif %}
+          {% if user.occupation %}
+          <div class="detail-row">
+            <span class="label">Occupation</span>
+            <span class="value">{{ user.occupation }}</span>
+          </div>
+          {% endif %}
+          <div class="detail-row">
+            <span class="label">Member Since</span>
+            <span class="value">{{ user.created_at.strftime('%b %Y') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <a href="/browse" class="back-link">
+    <i class="fa-solid fa-arrow-left" style="font-size:0.75rem;"></i> Back to Browse
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Join Pinay Cupid — Register{% endblock %}
+
+{% block head %}
+<style>
+  .auth-page {
+    min-height: calc(100vh - 120px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.5rem;
+    background: var(--cream);
+  }
+  .auth-card {
+    background: var(--white);
+    border: 1px solid var(--cream-border);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 560px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  .auth-header {
+    padding: 2.5rem 2.5rem 1.8rem;
+    border-bottom: 1px solid var(--cream-border);
+    text-align: center;
+  }
+  .auth-header .auth-logo {
+    width: 38px; height: 38px;
+    color: var(--crimson);
+    margin: 0 auto 1rem;
+    display: block;
+  }
+  .auth-header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.3rem;
+  }
+  .auth-header p {
+    font-size: 0.82rem;
+    color: var(--ink-light);
+    font-weight: 300;
+  }
+  .auth-body { padding: 2rem 2.5rem 2.5rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .section-label {
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    font-weight: 500;
+    margin: 1.4rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--cream-border);
+  }
+  .notice {
+    background: var(--cream);
+    border: 1px solid var(--cream-border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    color: var(--ink-light);
+    margin-bottom: 1.2rem;
+    line-height: 1.6;
+  }
+
+  @media(max-width:500px) {
+    .two-col { grid-template-columns: 1fr; }
+    .auth-body { padding: 1.5rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <svg class="auth-logo" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
+      </svg>
+      <h1>Create Account</h1>
+      <p>Join free and start your love story</p>
+    </div>
+
+    <div class="auth-body">
+      <form method="post" action="/register">
+
+        <p class="section-label">Account</p>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Username</label>
+            <input class="form-control" type="text" name="username"
+                   placeholder="Choose a username" required
+                   value="{{ form.username or '' }}" minlength="3" maxlength="50" />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input class="form-control" type="email" name="email"
+                   placeholder="your@email.com" required
+                   value="{{ form.email or '' }}" />
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Password</label>
+            <input class="form-control" type="password" name="password"
+                   placeholder="Min. 6 characters" required minlength="6" />
+          </div>
+          <div class="form-group">
+            <label>Confirm Password</label>
+            <input class="form-control" type="password" name="confirm_password"
+                   placeholder="Repeat password" required minlength="6" />
+          </div>
+        </div>
+
+        <p class="section-label">Profile <span style="font-weight:300;letter-spacing:0;text-transform:none;font-size:0.75rem;">&nbsp;— optional, can be filled later</span></p>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input class="form-control" type="text" name="full_name"
+                   placeholder="Your full name" value="{{ form.full_name or '' }}" />
+          </div>
+          <div class="form-group">
+            <label>Age</label>
+            <input class="form-control" type="number" name="age"
+                   placeholder="Your age" value="{{ form.age or '' }}" min="18" max="100" />
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Gender</label>
+            <select class="form-control" name="gender">
+              <option value="">Select gender</option>
+              <option value="female" {% if form.gender=='female' %}selected{% endif %}>Female</option>
+              <option value="male"   {% if form.gender=='male'   %}selected{% endif %}>Male</option>
+              <option value="other"  {% if form.gender=='other'  %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <input class="form-control" type="text" name="location"
+                   placeholder="City, Province" value="{{ form.location or '' }}" />
+          </div>
+        </div>
+
+        <div class="notice">
+          By registering you confirm you are <strong>18 years or older</strong> and agree to our Terms of Service and Privacy Policy.
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          Create My Account
+        </button>
+      </form>
+
+      <p class="text-center mt-2 text-muted">
+        Already have an account? <a href="/login" style="color:var(--crimson);font-weight:500;">Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Admin{% endblock %} — Pinay Cupid</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --crimson:     #8b1a2e;
+      --crimson-mid: #a82540;
+      --crimson-soft:#f2dde2;
+      --cream:       #fdf9f5;
+      --cream-mid:   #f5ede4;
+      --cream-border:#e6d8cc;
+      --ink:         #1e1414;
+      --ink-mid:     #4a2f2f;
+      --ink-light:   #8a6a6a;
+      --white:       #ffffff;
+      --gold:        #b8964e;
+      --bg:          #f4f4f2;
+      --sidebar-w:   220px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    /* ── SIDEBAR ─────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--ink);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+    .sidebar-brand {
+      padding: 1.5rem 1.4rem 1.2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .sidebar-brand svg {
+      width: 22px; height: 22px;
+      color: var(--crimson);
+      flex-shrink: 0;
+    }
+    .sidebar-brand-text h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.88);
+      line-height: 1;
+    }
+    .sidebar-brand-text span {
+      font-size: 0.62rem;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
+    .nav-label {
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+      padding: 1rem 1.4rem 0.4rem;
+    }
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.62rem 1.4rem;
+      color: rgba(255,255,255,0.55);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 400;
+      transition: all 0.18s;
+      border-left: 2px solid transparent;
+    }
+    .sidebar-nav a i { width: 14px; text-align: center; font-size: 0.78rem; }
+    .sidebar-nav a:hover,
+    .sidebar-nav a.active {
+      color: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.05);
+      border-left-color: var(--crimson);
+    }
+
+    .sidebar-footer {
+      padding: 1rem 1.4rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .admin-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .admin-avatar-sm {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: var(--crimson);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600;
+      font-size: 0.78rem;
+      color: white;
+      flex-shrink: 0;
+    }
+    .admin-pill-text strong {
+      display: block;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.75);
+      font-weight: 500;
+    }
+    .admin-pill-text span {
+      font-size: 0.67rem;
+      color: rgba(255,255,255,0.28);
+    }
+
+    /* ── MAIN ────────────────────── */
+    .main-content {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Topbar */
+    .topbar {
+      background: var(--white);
+      border-bottom: 1px solid #e8e8e8;
+      padding: 0 1.8rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar h1 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.2px;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.78rem;
+      color: #aaa;
+    }
+
+    /* Page body */
+    .page-body { padding: 1.8rem; flex: 1; }
+
+    /* Flash */
+    .flash {
+      padding: 0.7rem 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      font-size: 0.83rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid transparent;
+    }
+    .flash-success { background: #f0faf3; color: #1a5c34; border-color: #b8dfc8; }
+    .flash-error   { background: #fdf2f4; color: var(--crimson); border-color: #e8bec6; }
+
+    /* Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.8rem;
+    }
+    .stat-card {
+      background: var(--white);
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 1.3rem;
+    }
+    .stat-card .stat-label {
+      font-size: 0.68rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #aaa;
+      margin-bottom: 0.5rem;
+    }
+    .stat-card .stat-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1;
+    }
+    .stat-card .stat-sub {
+      font-size: 0.72rem;
+      color: #bbb;
+      margin-top: 0.3rem;
+    }
+    .stat-accent { border-left: 3px solid var(--crimson); }
+
+    /* Table */
+    .table-card {
+      background: var(--white);
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .table-card-header {
+      padding: 0.9rem 1.2rem;
+      border-bottom: 1px solid #f2f2f2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .table-card-header h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: #fafafa;
+      padding: 0.65rem 1rem;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #aaa;
+      font-weight: 600;
+      text-align: left;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    td {
+      padding: 0.75rem 1rem;
+      font-size: 0.83rem;
+      border-bottom: 1px solid #f8f8f8;
+      color: var(--ink-mid);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.6rem;
+      border-radius: 2px;
+      font-size: 0.67rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge-active   { background: #e8f5ee; color: #1a5c34; }
+    .badge-inactive { background: #fdf2f4; color: var(--crimson); }
+    .badge-admin    { background: #fff8e6; color: #7a5a10; }
+    .badge-user     { background: #f0f4ff; color: #2a4a9a; }
+
+    /* Forms */
+    .form-control {
+      width: 100%;
+      padding: 0.55rem 0.8rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.83rem;
+      color: var(--ink);
+      background: var(--white);
+      transition: border-color 0.18s;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--crimson);
+      box-shadow: 0 0 0 2px rgba(139,26,46,0.08);
+    }
+    .form-group { margin-bottom: 0.9rem; }
+    .form-group label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: #888;
+      margin-bottom: 0.3rem;
+      letter-spacing: 0.3px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.48rem 1rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      text-decoration: none;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.18s;
+    }
+    .btn-primary { background: var(--crimson); color: white; border-color: var(--crimson); }
+    .btn-primary:hover { background: var(--crimson-mid); }
+    .btn-danger  { background: #dc2626; color: white; border-color: #dc2626; }
+    .btn-danger:hover  { background: #b91c1c; }
+    .btn-success { background: #16a34a; color: white; border-color: #16a34a; }
+    .btn-success:hover { background: #15803d; }
+    .btn-outline { background: transparent; border-color: #ddd; color: #555; }
+    .btn-outline:hover { background: #f5f5f5; }
+    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.74rem; }
+    .mt-2 { margin-top: 1rem; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
+    </svg>
+    <div class="sidebar-brand-text">
+      <h2>Pinay Cupid</h2>
+      <span>Admin Panel</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <span class="nav-label">Overview</span>
+    <a href="/admin" class="{% if request.url.path == '/admin' %}active{% endif %}">
+      <i class="fa-solid fa-gauge-simple"></i> Dashboard
+    </a>
+    <span class="nav-label">Members</span>
+    <a href="/admin/users" class="{% if '/admin/users' in request.url.path and 'inactive' not in request.url.query %}active{% endif %}">
+      <i class="fa-solid fa-users"></i> All Members
+    </a>
+    <a href="/admin/users?filter=inactive">
+      <i class="fa-solid fa-user-slash"></i> Inactive
+    </a>
+    <span class="nav-label">Site</span>
+    <a href="/" target="_blank">
+      <i class="fa-solid fa-arrow-up-right-from-square"></i> View Site
+    </a>
+    <a href="/logout">
+      <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="admin-pill">
+      <div class="admin-avatar-sm">{{ admin.username[0].upper() }}</div>
+      <div class="admin-pill-text">
+        <strong>{{ admin.username }}</strong>
+        <span>Administrator</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+    <div class="topbar-right">
+      <span id="clock"></span>
+    </div>
+  </div>
+
+  <div class="page-body">
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="flash flash-{{ msg.type }}">
+          {% if msg.type == 'success' %}
+            <i class="fa-solid fa-circle-check"></i>
+          {% else %}
+            <i class="fa-solid fa-circle-exclamation"></i>
+          {% endif %}
+          {{ msg.text }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script>
+  function tick() {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  }
+  tick(); setInterval(tick, 60000);
+</script>
+</body>
+</html>

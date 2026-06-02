@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Sign In — Pinay Cupid{% endblock %}
+
+{% block head %}
+<style>
+  .auth-page {
+    min-height: calc(100vh - 120px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.5rem;
+    background: var(--cream);
+  }
+  .auth-card {
+    background: var(--white);
+    border: 1px solid var(--cream-border);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 420px;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+  .auth-header {
+    padding: 2.5rem 2.5rem 1.8rem;
+    border-bottom: 1px solid var(--cream-border);
+    text-align: center;
+  }
+  .auth-header .auth-logo {
+    width: 38px; height: 38px;
+    color: var(--crimson);
+    margin: 0 auto 1rem;
+    display: block;
+  }
+  .auth-header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.3rem;
+  }
+  .auth-header p {
+    font-size: 0.82rem;
+    color: var(--ink-light);
+    font-weight: 300;
+  }
+  .auth-body { padding: 2rem 2.5rem 2.5rem; }
+
+  /* Role toggle */
+  .role-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1.8rem;
+    border: 1px solid var(--cream-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .role-tab {
+    flex: 1;
+    padding: 0.55rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-light);
+    background: var(--cream);
+    border: none;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.3px;
+    transition: all 0.18s;
+    border-right: 1px solid var(--cream-border);
+  }
+  .role-tab:last-child { border-right: none; }
+  .role-tab.active {
+    background: var(--crimson);
+    color: var(--white);
+  }
+
+  @media(max-width:480px) { .auth-body { padding: 1.5rem; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <svg class="auth-logo" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
+      </svg>
+      <h1>Welcome Back</h1>
+      <p>Sign in to continue your journey</p>
+    </div>
+    <div class="auth-body">
+      <div class="role-tabs">
+        <button class="role-tab {% if not is_admin %}active{% endif %}" onclick="setRole('user')">
+          Member Login
+        </button>
+        <button class="role-tab {% if is_admin %}active{% endif %}" onclick="setRole('admin')">
+          Admin Login
+        </button>
+      </div>
+
+      <form method="post" action="/login">
+        <input type="hidden" name="role" id="roleInput" value="{{ 'admin' if is_admin else 'user' }}" />
+
+        <div class="form-group">
+          <label>Username or Email</label>
+          <input class="form-control" type="text" name="username"
+                 placeholder="Enter username or email"
+                 required value="{{ form.username or '' }}" />
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input class="form-control" type="password" name="password"
+                 placeholder="Your password" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:0.6rem;">
+          Sign In
+        </button>
+      </form>
+
+      <p class="text-center mt-2 text-muted">
+        New here? <a href="/register" style="color:var(--crimson);font-weight:500;">Join free</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setRole(role) {
+    document.getElementById('roleInput').value = role;
+    document.querySelectorAll('.role-tab').forEach((t, i) => {
+      t.classList.toggle('active', role === 'admin' ? i === 1 : i === 0);
+    });
+  }
+</script>
+{% endblock %}

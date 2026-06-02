@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile — Pinay Cupid{% endblock %}
+
+{% block head %}
+<style>
+  .edit-page { max-width: 720px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+
+  .page-title {
+    margin-bottom: 2rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid var(--cream-border);
+  }
+  .page-title h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.3rem;
+  }
+  .page-title p {
+    font-size: 0.83rem;
+    color: var(--ink-light);
+    font-weight: 300;
+  }
+
+  .edit-block {
+    background: var(--white);
+    border: 1px solid var(--cream-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .edit-block-header {
+    padding: 0.85rem 1.5rem;
+    border-bottom: 1px solid var(--cream-border);
+    font-size: 0.7rem;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .edit-block-body { padding: 1.5rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  /* Photo section */
+  .photo-section { display: flex; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap; }
+  .photo-frame {
+    width: 96px; height: 96px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--cream-border);
+    background: var(--cream-mid);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--cream-border);
+    font-size: 2.2rem;
+    flex-shrink: 0;
+  }
+  .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-controls { flex: 1; min-width: 200px; }
+  .photo-controls p {
+    font-size: 0.78rem;
+    color: var(--ink-light);
+    font-weight: 300;
+    margin-top: 0.5rem;
+    line-height: 1.5;
+  }
+
+  .form-footer {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    margin-top: 0.4rem;
+  }
+
+  @media(max-width:560px) {
+    .two-col { grid-template-columns: 1fr; }
+    .edit-block-body { padding: 1.2rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-page">
+  <div class="page-title">
+    <h2>Edit Profile</h2>
+    <p>Keep your profile updated to attract the right matches.</p>
+  </div>
+
+  <!-- Photo upload -->
+  <div class="edit-block">
+    <div class="edit-block-header">Profile Photo</div>
+    <div class="edit-block-body">
+      <div class="photo-section">
+        <div class="photo-frame" id="photoFrame">
+          {% if current_user.profile_photo %}
+            <img src="/static/uploads/{{ current_user.profile_photo }}" id="photoPreviewImg" />
+          {% else %}
+            <i class="fa-regular fa-user"></i>
+          {% endif %}
+        </div>
+        <div class="photo-controls">
+          <form method="post" action="/profile/photo" enctype="multipart/form-data">
+            <input type="file" name="photo" accept="image/*" class="form-control"
+                   style="margin-bottom:0.6rem;" onchange="previewPhoto(this)" />
+            <button type="submit" class="btn btn-ghost btn-sm">Upload Photo</button>
+            <p>JPG, PNG or GIF &mdash; maximum 5 MB</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile form -->
+  <div class="edit-block">
+    <div class="edit-block-header">Personal Information</div>
+    <div class="edit-block-body">
+      <form method="post" action="/profile/edit">
+        <div class="two-col">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input class="form-control" type="text" name="full_name"
+                   value="{{ current_user.full_name or '' }}"
+                   placeholder="Your full name" />
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input class="form-control" type="text"
+                   value="{{ current_user.username }}"
+                   disabled style="opacity:0.5;cursor:not-allowed;" />
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label>Age</label>
+            <input class="form-control" type="number" name="age"
+                   value="{{ current_user.age or '' }}"
+                   min="18" max="100" placeholder="Your age" />
+          </div>
+          <div class="form-group">
+            <label>Gender</label>
+            <select class="form-control" name="gender">
+              <option value="">Select</option>
+              <option value="female" {% if current_user.gender and current_user.gender.value=='female' %}selected{% endif %}>Female</option>
+              <option value="male"   {% if current_user.gender and current_user.gender.value=='male'   %}selected{% endif %}>Male</option>
+              <option value="other"  {% if current_user.gender and current_user.gender.value=='other'  %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label>Location</label>
+            <input class="form-control" type="text" name="location"
+                   value="{{ current_user.location or '' }}"
+                   placeholder="City, Province" />
+          </div>
+          <div class="form-group">
+            <label>Religion</label>
+            <input class="form-control" type="text" name="religion"
+                   value="{{ current_user.religion or '' }}"
+                   placeholder="e.g. Catholic, Baptist..." />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Occupation</label>
+          <input class="form-control" type="text" name="occupation"
+                 value="{{ current_user.occupation or '' }}"
+                 placeholder="Your job or profession" />
+        </div>
+
+        <div class="form-group">
+          <label>About Me</label>
+          <textarea class="form-control" name="bio" rows="4"
+                    placeholder="Tell others about yourself...">{{ current_user.bio or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Looking For</label>
+          <textarea class="form-control" name="looking_for" rows="3"
+                    placeholder="What kind of relationship are you looking for?">{{ current_user.looking_for or '' }}</textarea>
+        </div>
+
+        <div class="form-footer">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <a href="/profile" class="btn btn-ghost">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function previewPhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const frame = document.getElementById('photoFrame');
+      frame.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;" />`;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+{% endblock %}

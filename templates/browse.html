@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Browse Members — Pinay Cupid{% endblock %}
+
+{% block head %}
+<style>
+  .browse-page { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+
+  .page-title {
+    margin-bottom: 1.8rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid var(--cream-border);
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
+  .page-title h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .page-title span {
+    font-size: 0.82rem;
+    color: var(--ink-light);
+    font-weight: 300;
+  }
+
+  /* Filter bar */
+  .filter-bar {
+    background: var(--white);
+    border: 1px solid var(--cream-border);
+    border-radius: var(--radius-lg);
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    align-items: flex-end;
+  }
+  .filter-bar .form-group { margin-bottom: 0; flex: 1; min-width: 130px; }
+  .filter-bar label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--ink-light);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+  .filter-bar .form-control { padding: 0.52rem 0.8rem; font-size: 0.84rem; }
+  .filter-actions { display: flex; gap: 0.5rem; align-items: flex-end; }
+
+  /* Grid */
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.2rem;
+  }
+  .member-card { text-decoration: none; color: inherit; display: block; }
+  .member-card .photo-wrap {
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: var(--cream-mid);
+    position: relative;
+  }
+  .member-card .photo-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.45s ease;
+  }
+  .member-card:hover .photo-wrap img { transform: scale(1.04); }
+  .member-card .placeholder-photo {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--cream-border); font-size: 3rem;
+  }
+  .member-card .card-info { padding: 0.85rem 1rem 1rem; }
+  .member-card .card-info h4 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+    color: var(--ink);
+  }
+  .member-card .card-info p {
+    font-size: 0.78rem;
+    color: var(--ink-light);
+    font-weight: 300;
+  }
+  .member-card .card-info .tags {
+    display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.5rem;
+  }
+  .status-dot {
+    position: absolute; bottom: 8px; right: 8px;
+    width: 9px; height: 9px;
+    background: #4caf7d; border-radius: 50%;
+    border: 2px solid white;
+  }
+
+  /* Pagination */
+  .pagination {
+    display: flex; justify-content: center;
+    gap: 0.3rem; margin-top: 2.5rem; flex-wrap: wrap;
+  }
+  .pagination a, .pagination span {
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius);
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid var(--cream-border);
+    transition: all 0.18s;
+    min-width: 36px;
+    text-align: center;
+  }
+  .pagination a { background: var(--white); color: var(--ink-mid); }
+  .pagination a:hover { background: var(--cream-mid); border-color: var(--crimson); color: var(--crimson); }
+  .pagination span { background: var(--crimson); color: white; border-color: var(--crimson); }
+
+  .empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+    color: var(--ink-light);
+    grid-column: 1/-1;
+  }
+  .empty-state svg {
+    width: 48px; height: 48px;
+    color: var(--cream-border);
+    margin: 0 auto 1rem;
+    display: block;
+  }
+  .empty-state h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+  }
+  .empty-state p { font-size: 0.86rem; font-weight: 300; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="browse-page">
+  <div class="page-title">
+    <h2>Browse Members</h2>
+    <span>{{ total }} profiles found</span>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" action="/browse">
+    <div class="filter-bar">
+      <div class="form-group">
+        <label>Gender</label>
+        <select class="form-control" name="gender">
+          <option value="">All</option>
+          <option value="female" {% if filters.gender=='female' %}selected{% endif %}>Female</option>
+          <option value="male"   {% if filters.gender=='male'   %}selected{% endif %}>Male</option>
+          <option value="other"  {% if filters.gender=='other'  %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Age Min</label>
+        <input class="form-control" type="number" name="age_min"
+               placeholder="18" min="18" max="99" value="{{ filters.age_min or '' }}" />
+      </div>
+      <div class="form-group">
+        <label>Age Max</label>
+        <input class="form-control" type="number" name="age_max"
+               placeholder="99" min="18" max="99" value="{{ filters.age_max or '' }}" />
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input class="form-control" type="text" name="location"
+               placeholder="City or Province" value="{{ filters.location or '' }}" />
+      </div>
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Search</button>
+        <a href="/browse" class="btn btn-ghost btn-sm">Clear</a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Results -->
+  {% if members %}
+  <div class="members-grid">
+    {% for m in members %}
+    <a href="/profile/{{ m.id }}" class="member-card">
+      <div class="card">
+        <div class="photo-wrap">
+          {% if m.profile_photo %}
+            <img src="/static/uploads/{{ m.profile_photo }}" alt="{{ m.full_name or m.username }}" />
+          {% else %}
+            <div class="placeholder-photo">
+              <i class="fa-regular fa-user"></i>
+            </div>
+          {% endif %}
+          <div class="status-dot"></div>
+        </div>
+        <div class="card-info">
+          <h4>{{ m.full_name or m.username }}</h4>
+          <p>
+            {% if m.age %}{{ m.age }} yrs{% endif %}
+            {% if m.location %}&middot; {{ m.location }}{% endif %}
+          </p>
+          <div class="tags">
+            {% if m.gender %}
+              <span class="badge badge-red">{{ m.gender.value | title }}</span>
+            {% endif %}
+            {% if m.religion %}
+              <span class="badge badge-cream">{{ m.religion }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if total_pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}
+      <a href="?{{ query_string }}&page={{ page - 1 }}">&lsaquo;</a>
+    {% endif %}
+    {% for p in range(1, total_pages + 1) %}
+      {% if p == page %}
+        <span>{{ p }}</span>
+      {% elif p <= 2 or p >= total_pages - 1 or (p >= page - 1 and p <= page + 1) %}
+        <a href="?{{ query_string }}&page={{ p }}">{{ p }}</a>
+      {% elif p == 3 or p == total_pages - 2 %}
+        <span style="background:none;border-color:transparent;color:var(--ink-light);">&#8230;</span>
+      {% endif %}
+    {% endfor %}
+    {% if page < total_pages %}
+      <a href="?{{ query_string }}&page={{ page + 1 }}">&rsaquo;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="members-grid">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
+      </svg>
+      <h3>No profiles found</h3>
+      <p>Try adjusting your filters.</p>
+      <a href="/browse" class="btn btn-outline btn-sm" style="margin-top:1rem;">Show All</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

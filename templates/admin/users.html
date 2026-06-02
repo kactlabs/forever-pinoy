@@ -1,0 +1,119 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Members{% endblock %}
+{% block page_title %}Manage Members{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+  <p style="color:var(--text-light);font-size:0.88rem;">{{ total }} total members</p>
+  <form method="get" style="display:flex;gap:0.6rem;flex-wrap:wrap;">
+    <input class="form-control" type="text" name="q" placeholder="Search name, email..." value="{{ q or '' }}" style="width:220px;" />
+    <select class="form-control" name="filter" style="width:140px;">
+      <option value="">All Status</option>
+      <option value="active"   {% if filter=='active'   %}selected{% endif %}>Active</option>
+      <option value="inactive" {% if filter=='inactive' %}selected{% endif %}>Inactive</option>
+    </select>
+    <select class="form-control" name="role" style="width:130px;">
+      <option value="">All Roles</option>
+      <option value="user"  {% if role_filter=='user'  %}selected{% endif %}>Members</option>
+      <option value="admin" {% if role_filter=='admin' %}selected{% endif %}>Admins</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-magnifying-glass"></i></button>
+    <a href="/admin/users" class="btn btn-outline btn-sm">Clear</a>
+  </form>
+</div>
+
+<div class="table-card">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Member</th>
+        <th>Email</th>
+        <th>Age / Gender</th>
+        <th>Location</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th>Joined</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>{{ user.id }}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red-soft),var(--cream-dark));display:flex;align-items:center;justify-content:center;font-size:0.9rem;">
+              {% if user.profile_photo %}
+                <img src="/static/uploads/{{ user.profile_photo }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+              {% else %}
+                👤
+              {% endif %}
+            </div>
+            <div>
+              <strong>{{ user.username }}</strong>
+              {% if user.full_name %}<br/><small style="color:var(--text-light);">{{ user.full_name }}</small>{% endif %}
+            </div>
+          </div>
+        </td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.age or '—' }} / {{ user.gender.value if user.gender else '—' }}</td>
+        <td>{{ user.location or '—' }}</td>
+        <td><span class="badge badge-{{ user.role.value }}">{{ user.role.value }}</span></td>
+        <td>
+          {% if user.is_active %}
+            <span class="badge badge-active">Active</span>
+          {% else %}
+            <span class="badge badge-inactive">Inactive</span>
+          {% endif %}
+        </td>
+        <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
+        <td style="white-space:nowrap;">
+          <a href="/admin/users/{{ user.id }}/toggle"
+             class="btn btn-sm {% if user.is_active %}btn-danger{% else %}btn-success{% endif %}"
+             title="{% if user.is_active %}Deactivate{% else %}Activate{% endif %}">
+            {% if user.is_active %}
+              <i class="fa-solid fa-ban"></i>
+            {% else %}
+              <i class="fa-solid fa-check"></i>
+            {% endif %}
+          </a>
+          {% if user.role.value != 'admin' %}
+          <a href="/admin/users/{{ user.id }}/make-admin" class="btn btn-sm btn-outline" title="Make Admin"
+             onclick="return confirm('Promote {{ user.username }} to admin?')">
+            <i class="fa-solid fa-shield-halved"></i>
+          </a>
+          {% endif %}
+          <a href="/admin/users/{{ user.id }}/delete" class="btn btn-sm btn-danger" title="Delete"
+             onclick="return confirm('Permanently delete {{ user.username }}? This cannot be undone.')">
+            <i class="fa-solid fa-trash"></i>
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="text-align:center;color:var(--text-light);padding:2.5rem;">No members found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if total_pages > 1 %}
+<div style="display:flex;justify-content:center;gap:0.5rem;margin-top:1.5rem;flex-wrap:wrap;">
+  {% if page > 1 %}
+    <a href="?{{ query_string }}&page={{ page - 1 }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-chevron-left"></i></a>
+  {% endif %}
+  {% for p in range(1, total_pages + 1) %}
+    {% if p == page %}
+      <span class="btn btn-primary btn-sm">{{ p }}</span>
+    {% else %}
+      <a href="?{{ query_string }}&page={{ p }}" class="btn btn-outline btn-sm">{{ p }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if page < total_pages %}
+    <a href="?{{ query_string }}&page={{ page + 1 }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-chevron-right"></i></a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
