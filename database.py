@@ -1,99 +1,165 @@
+"""
+database.py — MongoDB connection + helpers.
+
+Set MONGODB_URI env var to your Atlas connection string.
+Falls back to a local MongoDB instance (mongodb://localhost:27017) for dev.
+"""
 import os
-import enum
 from datetime import datetime
+from bson import ObjectId
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo.collection import Collection
 
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Text, Enum
-from sqlalchemy.orm import declarative_base, sessionmaker
+# ── Connection ────────────────────────────────────────────────────────────────
+MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
+DB_NAME     = os.environ.get("MONGODB_DB", "pinay_cupid")
 
-# ── Database URL ─────────────────────────────────────────────────────────────
-# Priority:
-#   1. DATABASE_URL env var  →  use as-is (Postgres, MySQL, etc.)
-#   2. Fallback              →  local SQLite
-_DATABASE_URL = os.environ.get("DATABASE_URL", "")
-
-if _DATABASE_URL:
-    # Heroku/Vercel/Neon/Supabase may give "postgres://..." — SQLAlchemy needs "postgresql://"
-    if _DATABASE_URL.startswith("postgres://"):
-        _DATABASE_URL = _DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-    # Use NullPool for serverless — each lambda gets a fresh connection, no pool needed
-    # This avoids "too many connections" errors on Neon/Supabase free tiers
-    from sqlalchemy.pool import NullPool
-    engine = create_engine(
-        _DATABASE_URL,
-        poolclass=NullPool,
-        pool_pre_ping=True,
-        connect_args={
-            "sslmode": "require",      # Neon + Supabase both require SSL
-            "connect_timeout": 10,
-        },
-    )
-else:
-    _sqlite_path = "/tmp/pinay_cupid.db" if os.environ.get("VERCEL") else "./pinay_cupid.db"
-    engine = create_engine(
-        f"sqlite:///{_sqlite_path}",
-        connect_args={"check_same_thread": False},
-    )
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+_client: MongoClient | None = None
 
 
-# ── Enums ─────────────────────────────────────────────────────────────────────
-class GenderEnum(str, enum.Enum):
-    female = "female"
-    male   = "male"
-    other  = "other"
-
-
-class RoleEnum(str, enum.Enum):
-    user  = "user"
-    admin = "admin"
-
-
-# ── Models ────────────────────────────────────────────────────────────────────
-class User(Base):
-    __tablename__ = "users"
-
-    id              = Column(Integer, primary_key=True, index=True)
-    username        = Column(String(50),  unique=True, index=True, nullable=False)
-    email           = Column(String(120), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(256), nullable=False)
-    role            = Column(Enum(RoleEnum), default=RoleEnum.user, nullable=False)
-    is_active       = Column(Boolean, default=True)
-    is_verified     = Column(Boolean, default=False)
-    created_at      = Column(DateTime, default=datetime.utcnow)
-
-    # Profile
-    full_name     = Column(String(100), nullable=True)
-    age           = Column(Integer,     nullable=True)
-    gender        = Column(Enum(GenderEnum), nullable=True)
-    location      = Column(String(100), nullable=True)
-    bio           = Column(Text,        nullable=True)
-    looking_for   = Column(String(200), nullable=True)
-    religion      = Column(String(50),  nullable=True)
-    occupation    = Column(String(100), nullable=True)
-    profile_photo = Column(String(255), nullable=True)
-    last_login    = Column(DateTime,    nullable=True)
-
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-_db_initialized = False
-
-
-def init_db():
-    """Create all tables (idempotent — safe to call many times)."""
-    global _db_initialized
-    if not _db_initialized:
-        Base.metadata.create_all(bind=engine)
-        _db_initialized = True
+def get_client() -> MongoClient:
+    global _client
+    if _client is None:
+        _client = MongoClient(
+            MONGODB_URI,
+            serverSelectionTimeoutMS=8000,
+            connectTimeoutMS=8000,
+            socketTimeoutMS=10000,
+            tlsAllowInvalidCertificates=False,
+        )
+    return _client
 
 
 def get_db():
-    """Yield a DB session, ensuring tables exist first."""
-    init_db()          # no-op after first call in this process
-    db = SessionLocal()
+    """FastAPI dependency — yields the MongoDB database object."""
+    client = get_client()
+    db     = client[DB_NAME]
     try:
         yield db
     finally:
-        db.close()
+        pass   # PyMongo manages its own connection pool; nothing to close per-request
+
+
+def get_users(db) -> Collection:
+    return db["users"]
+
+
+# ── Indexes (called once at startup) ─────────────────────────────────────────
+def ensure_indexes(db):
+    users = get_users(db)
+    users.create_index("username", unique=True, background=True)
+    users.create_index("email",    unique=True, background=True)
+    users.create_index([("created_at", DESCENDING)], background=True)
+    users.create_index("role",      background=True)
+    users.create_index("is_active", background=True)
+    users.create_index("gender",    background=True)
+
+
+# ── User helper class ─────────────────────────────────────────────────────────
+# Wraps a raw MongoDB document dict so templates can use dot-notation
+# (e.g. user.username, user.role, user.gender.value)
+
+class _StrEnum:
+    """Mimics SQLAlchemy enum's .value attribute so templates don't break."""
+    def __init__(self, val: str):
+        self._val = val
+
+    @property
+    def value(self) -> str:
+        return self._val
+
+    def __str__(self) -> str:
+        return self._val
+
+    def __eq__(self, other):
+        if isinstance(other, _StrEnum):
+            return self._val == other._val
+        return self._val == other
+
+
+class User:
+    """
+    Thin wrapper around a MongoDB user document.
+    Exposes all fields as attributes so Jinja templates work without changes.
+    """
+    def __init__(self, doc: dict):
+        self._doc = doc
+
+    # ── identity ──────────────────────────────────────────────────────────────
+    @property
+    def id(self) -> str:
+        return str(self._doc["_id"])
+
+    @property
+    def username(self) -> str:
+        return self._doc.get("username", "")
+
+    @property
+    def email(self) -> str:
+        return self._doc.get("email", "")
+
+    @property
+    def hashed_password(self) -> str:
+        return self._doc.get("hashed_password", "")
+
+    @property
+    def role(self) -> _StrEnum:
+        return _StrEnum(self._doc.get("role", "user"))
+
+    @property
+    def is_active(self) -> bool:
+        return self._doc.get("is_active", True)
+
+    @property
+    def is_verified(self) -> bool:
+        return self._doc.get("is_verified", False)
+
+    @property
+    def created_at(self) -> datetime:
+        return self._doc.get("created_at", datetime.utcnow())
+
+    @property
+    def last_login(self) -> datetime | None:
+        return self._doc.get("last_login")
+
+    # ── profile ───────────────────────────────────────────────────────────────
+    @property
+    def full_name(self) -> str | None:
+        return self._doc.get("full_name")
+
+    @property
+    def age(self) -> int | None:
+        return self._doc.get("age")
+
+    @property
+    def gender(self) -> _StrEnum | None:
+        v = self._doc.get("gender")
+        return _StrEnum(v) if v else None
+
+    @property
+    def location(self) -> str | None:
+        return self._doc.get("location")
+
+    @property
+    def bio(self) -> str | None:
+        return self._doc.get("bio")
+
+    @property
+    def looking_for(self) -> str | None:
+        return self._doc.get("looking_for")
+
+    @property
+    def religion(self) -> str | None:
+        return self._doc.get("religion")
+
+    @property
+    def occupation(self) -> str | None:
+        return self._doc.get("occupation")
+
+    @property
+    def profile_photo(self) -> str | None:
+        return self._doc.get("profile_photo")
+
+    # ── raw doc access ────────────────────────────────────────────────────────
+    def raw(self) -> dict:
+        return self._doc

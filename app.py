@@ -1,25 +1,26 @@
 import os
 import uuid
-import json
+import re
 from pathlib import Path
 from datetime import datetime
 from contextlib import asynccontextmanager
 
 import uvicorn
+from bson import ObjectId
 from fastapi import FastAPI, Request, Form, Depends, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import URLSafeSerializer
-from sqlalchemy.orm import Session
+from pymongo.database import Database
 
-from database import init_db, get_db, User, RoleEnum, GenderEnum
+from database import get_db, get_users, ensure_indexes, User
 from auth import hash_password, verify_password, create_access_token, get_current_user
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-BASE_DIR     = Path(__file__).resolve().parent
-IS_VERCEL    = bool(os.environ.get("VERCEL"))
-UPLOAD_DIR   = Path("/tmp/uploads") if IS_VERCEL else BASE_DIR / "static" / "uploads"
+BASE_DIR   = Path(__file__).resolve().parent
+IS_VERCEL  = bool(os.environ.get("VERCEL"))
+UPLOAD_DIR = Path("/tmp/uploads") if IS_VERCEL else BASE_DIR / "static" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
@@ -30,41 +31,42 @@ _signer       = URLSafeSerializer(_FLASH_SECRET, salt="flash")
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
-def _seed_admin():
-    from database import SessionLocal, init_db as _init
-    _init()   # ensure tables exist before querying
-    db = SessionLocal()
-    try:
-        if not db.query(User).filter(User.role == RoleEnum.admin).first():
-            db.add(User(
-                username="admin",
-                email="admin@pinaycupid.com",
-                hashed_password=hash_password("admin123"),
-                role=RoleEnum.admin,
-                is_active=True,
-                full_name="Site Administrator",
-            ))
-            db.commit()
-    except Exception as exc:
-        db.rollback()
-        print(f"[startup] seed error: {exc}")
-    finally:
-        db.close()
-
-
 _seeded = False
 
-def _lazy_seed():
-    """Called on first request — ensures admin exists even if lifespan didn't run."""
+
+def _seed_admin(db: Database):
     global _seeded
-    if not _seeded:
-        _seed_admin()
+    if _seeded:
+        return
+    try:
+        ensure_indexes(db)
+        users = get_users(db)
+        if not users.find_one({"role": "admin"}):
+            users.insert_one({
+                "username":        "admin",
+                "email":           "admin@pinaycupid.com",
+                "hashed_password": hash_password("admin123"),
+                "role":            "admin",
+                "is_active":       True,
+                "is_verified":     False,
+                "full_name":       "Site Administrator",
+                "created_at":      datetime.utcnow(),
+            })
+            print("[startup] Admin user created.")
         _seeded = True
+    except Exception as exc:
+        print(f"[startup] seed error: {exc}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _lazy_seed()
+    # Seed on startup (works for long-running server; lazy seed handles serverless)
+    from database import get_client, DB_NAME
+    try:
+        db = get_client()[DB_NAME]
+        _seed_admin(db)
+    except Exception as exc:
+        print(f"[lifespan] Could not connect at startup: {exc}")
     yield
 
 
@@ -74,7 +76,7 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
-# ── Flash helpers (cookie-based — works on serverless) ────────────────────────
+# ── Flash helpers ─────────────────────────────────────────────────────────────
 class FlashMessage:
     def __init__(self, text: str, type: str = "info"):
         self.text = text
@@ -106,7 +108,7 @@ def _redirect_with_flash(request: Request, url: str, text: str, ftype: str = "in
 
 # ── Render helper ─────────────────────────────────────────────────────────────
 def render(request: Request, template: str, context: dict,
-           db: Session, status_code: int = 200) -> HTMLResponse:
+           db: Database, status_code: int = 200) -> HTMLResponse:
     current_user = get_current_user(request, db)
     msgs = context.pop("messages", None) or get_flashes(request)
     ctx  = {"request": request, "current_user": current_user, "messages": msgs}
@@ -117,7 +119,7 @@ def render(request: Request, template: str, context: dict,
 
 
 def flash_error(request: Request, template: str, context: dict,
-                db: Session, msg: str, code: int = 400) -> HTMLResponse:
+                db: Database, msg: str, code: int = 400) -> HTMLResponse:
     context["messages"] = [FlashMessage(msg, "error")]
     return render(request, template, context, db, code)
 
@@ -128,28 +130,26 @@ def flash_error(request: Request, template: str, context: dict,
 
 # ── HOME ──────────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, db: Session = Depends(get_db)):
-    _lazy_seed()
-    members = (
-        db.query(User)
-        .filter(User.is_active == True, User.role == RoleEnum.user)
-        .order_by(User.created_at.desc())
-        .limit(8).all()
-    )
+def home(request: Request, db: Database = Depends(get_db)):
+    _seed_admin(db)
+    users   = get_users(db)
+    docs    = list(users.find({"is_active": True, "role": "user"})
+                        .sort("created_at", -1).limit(8))
+    members = [User(d) for d in docs]
     return render(request, "index.html", {"recent_members": members}, db)
 
 
 # ── REGISTER ──────────────────────────────────────────────────────────────────
 @app.get("/register", response_class=HTMLResponse)
-def register_get(request: Request, db: Session = Depends(get_db)):
-    _lazy_seed()
+def register_get(request: Request, db: Database = Depends(get_db)):
+    _seed_admin(db)
     return render(request, "register.html", {"form": {}}, db)
 
 
 @app.post("/register", response_class=HTMLResponse)
 def register_post(
-    request: Request,
-    db: Session = Depends(get_db),
+    request:          Request,
+    db:               Database = Depends(get_db),
     username:         str = Form(...),
     email:            str = Form(...),
     password:         str = Form(...),
@@ -159,21 +159,21 @@ def register_post(
     gender:           str = Form(""),
     location:         str = Form(""),
 ):
-    _lazy_seed()
+    _seed_admin(db)
     form = {"username": username, "email": email,
             "full_name": full_name, "age": age,
             "gender": gender, "location": location}
 
     if password != confirm_password:
         return flash_error(request, "register.html", {"form": form}, db, "Passwords do not match.")
-
     if len(password) < 6:
         return flash_error(request, "register.html", {"form": form}, db, "Password must be at least 6 characters.")
 
-    if db.query(User).filter(User.username == username).first():
-        return flash_error(request, "register.html", {"form": form}, db, "Username already taken. Please choose another.")
+    users = get_users(db)
 
-    if db.query(User).filter(User.email == email).first():
+    if users.find_one({"username": username}):
+        return flash_error(request, "register.html", {"form": form}, db, "Username already taken.")
+    if users.find_one({"email": email}):
         return flash_error(request, "register.html", {"form": form}, db, "Email already registered. Try logging in.")
 
     age_int = None
@@ -181,79 +181,85 @@ def register_post(
         try:
             age_int = int(age.strip())
             if age_int < 18:
-                return flash_error(request, "register.html", {"form": form}, db, "You must be 18 or older to register.")
+                return flash_error(request, "register.html", {"form": form}, db,
+                                   "You must be 18 or older to register.")
         except ValueError:
             age_int = None
 
-    gender_enum = GenderEnum(gender) if gender in ("female", "male", "other") else None
+    gender_val = gender if gender in ("female", "male", "other") else None
 
     try:
-        user = User(
-            username=username,
-            email=email,
-            hashed_password=hash_password(password),
-            role=RoleEnum.user,
-            full_name=full_name or None,
-            age=age_int,
-            gender=gender_enum,
-            location=location or None,
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        doc = {
+            "username":        username,
+            "email":           email,
+            "hashed_password": hash_password(password),
+            "role":            "user",
+            "is_active":       True,
+            "is_verified":     False,
+            "created_at":      datetime.utcnow(),
+            "full_name":       full_name or None,
+            "age":             age_int,
+            "gender":          gender_val,
+            "location":        location or None,
+            "bio":             None,
+            "looking_for":     None,
+            "religion":        None,
+            "occupation":      None,
+            "profile_photo":   None,
+            "last_login":      None,
+        }
+        result = users.insert_one(doc)
+        user_id = str(result.inserted_id)
     except Exception as exc:
-        db.rollback()
-        import traceback
-        traceback.print_exc()
-        print(f"[register] DB error: {exc}")
+        import traceback; traceback.print_exc()
         return flash_error(request, "register.html", {"form": form}, db,
                            "Registration failed due to a server error. Please try again.", 500)
 
-    token = create_access_token({"sub": str(user.id)})
-    resp = _redirect_with_flash(request, "/profile/edit",
-                                f"Welcome to Pinay Cupid, {user.username}! Complete your profile.", "success")
+    token = create_access_token({"sub": user_id})
+    resp  = _redirect_with_flash(request, "/profile/edit",
+                                 f"Welcome to Pinay Cupid, {username}! Complete your profile.", "success")
     resp.set_cookie("access_token", token, httponly=True, max_age=86400 * 7, samesite="lax")
     return resp
 
 
 # ── LOGIN ─────────────────────────────────────────────────────────────────────
 @app.get("/login", response_class=HTMLResponse)
-def login_get(request: Request, db: Session = Depends(get_db)):
+def login_get(request: Request, db: Database = Depends(get_db)):
     return render(request, "login.html", {"form": {}, "is_admin": False}, db)
 
 
 @app.post("/login", response_class=HTMLResponse)
 def login_post(
-    request: Request,
-    db: Session = Depends(get_db),
+    request:  Request,
+    db:       Database = Depends(get_db),
     username: str = Form(...),
     password: str = Form(...),
     role:     str = Form("user"),
 ):
-    user = db.query(User).filter(
-        (User.username == username) | (User.email == username)
-    ).first()
+    users = get_users(db)
+    doc   = users.find_one({"$or": [{"username": username}, {"email": username}]})
 
-    if not user or not verify_password(password, user.hashed_password):
+    if not doc or not verify_password(password, doc.get("hashed_password", "")):
         return flash_error(request, "login.html",
                            {"form": {"username": username}, "is_admin": role == "admin"},
                            db, "Invalid username or password.")
 
-    if not user.is_active:
+    if not doc.get("is_active", True):
         return flash_error(request, "login.html", {"form": {}, "is_admin": False},
                            db, "Your account has been deactivated. Contact support.")
 
-    if role == "admin" and user.role != RoleEnum.admin:
+    if role == "admin" and doc.get("role") != "admin":
         return flash_error(request, "login.html",
                            {"form": {"username": username}, "is_admin": True},
                            db, "You do not have admin privileges.", 403)
 
-    user.last_login = datetime.utcnow()
-    db.commit()
+    users.update_one({"_id": doc["_id"]}, {"$set": {"last_login": datetime.utcnow()}})
 
-    token = create_access_token({"sub": str(user.id)})
-    dest  = "/admin" if user.role == RoleEnum.admin else "/"
-    resp  = _redirect_with_flash(request, dest, f"Welcome back, {user.username}!", "success")
+    user_id  = str(doc["_id"])
+    token    = create_access_token({"sub": user_id})
+    dest     = "/admin" if doc.get("role") == "admin" else "/"
+    resp     = _redirect_with_flash(request, dest,
+                                    f"Welcome back, {doc['username']}!", "success")
     resp.set_cookie("access_token", token, httponly=True, max_age=86400 * 7, samesite="lax")
     return resp
 
@@ -270,8 +276,7 @@ def logout(request: Request):
 @app.get("/browse", response_class=HTMLResponse)
 def browse(
     request:  Request,
-    db:       Session = Depends(get_db),
-    q:        str = "",
+    db:       Database = Depends(get_db),
     gender:   str = "",
     age_min:  str = "",
     age_max:  str = "",
@@ -279,30 +284,31 @@ def browse(
     page:     int = 1,
 ):
     PAGE_SIZE = 20
-    query = db.query(User).filter(User.is_active == True, User.role == RoleEnum.user)
+    filt: dict = {"is_active": True, "role": "user"}
 
-    if q:
-        like = f"%{q}%"
-        query = query.filter((User.username.ilike(like)) | (User.full_name.ilike(like)))
     if gender in ("female", "male", "other"):
-        query = query.filter(User.gender == GenderEnum(gender))
+        filt["gender"] = gender
+    age_q: dict = {}
     if age_min:
-        try: query = query.filter(User.age >= int(age_min))
+        try: age_q["$gte"] = int(age_min)
         except ValueError: pass
     if age_max:
-        try: query = query.filter(User.age <= int(age_max))
+        try: age_q["$lte"] = int(age_max)
         except ValueError: pass
+    if age_q:
+        filt["age"] = age_q
     if location:
-        query = query.filter(User.location.ilike(f"%{location}%"))
+        filt["location"] = {"$regex": re.escape(location), "$options": "i"}
 
-    total       = query.count()
+    users       = get_users(db)
+    total       = users.count_documents(filt)
     total_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
     page        = max(1, min(page, total_pages))
-    members     = query.order_by(User.created_at.desc()) \
-                       .offset((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).all()
+    docs        = list(users.find(filt).sort("created_at", -1)
+                             .skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE))
+    members     = [User(d) for d in docs]
 
     params = []
-    if q:        params.append(f"q={q}")
     if gender:   params.append(f"gender={gender}")
     if age_min:  params.append(f"age_min={age_min}")
     if age_max:  params.append(f"age_max={age_max}")
@@ -312,15 +318,14 @@ def browse(
         "members": members, "total": total,
         "page": page, "total_pages": total_pages,
         "query_string": "&".join(params),
-        "filters": {"q": q, "gender": gender, "age_min": age_min,
+        "filters": {"q": "", "gender": gender, "age_min": age_min,
                     "age_max": age_max, "location": location},
     }, db)
 
 
-# ── PROFILE — specific routes BEFORE /{user_id} to avoid int-parse collision ──
-
+# ── PROFILE ───────────────────────────────────────────────────────────────────
 @app.get("/profile", response_class=HTMLResponse)
-def my_profile(request: Request, db: Session = Depends(get_db)):
+def my_profile(request: Request, db: Database = Depends(get_db)):
     cu = get_current_user(request, db)
     if not cu:
         return RedirectResponse("/login", status_code=302)
@@ -328,7 +333,7 @@ def my_profile(request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/profile/edit", response_class=HTMLResponse)
-def edit_profile_get(request: Request, db: Session = Depends(get_db)):
+def edit_profile_get(request: Request, db: Database = Depends(get_db)):
     cu = get_current_user(request, db)
     if not cu:
         return RedirectResponse("/login", status_code=302)
@@ -338,7 +343,7 @@ def edit_profile_get(request: Request, db: Session = Depends(get_db)):
 @app.post("/profile/edit", response_class=HTMLResponse)
 def edit_profile_post(
     request:     Request,
-    db:          Session = Depends(get_db),
+    db:          Database = Depends(get_db),
     full_name:   str = Form(""),
     age:         str = Form(""),
     gender:      str = Form(""),
@@ -352,25 +357,24 @@ def edit_profile_post(
     if not cu:
         return RedirectResponse("/login", status_code=302)
 
-    cu.full_name   = full_name   or None
-    cu.location    = location    or None
-    cu.religion    = religion    or None
-    cu.occupation  = occupation  or None
-    cu.bio         = bio         or None
-    cu.looking_for = looking_for or None
-
+    age_int = None
     if age.strip():
-        try:   cu.age = int(age.strip())
+        try:   age_int = int(age.strip())
         except ValueError: pass
-    else:
-        cu.age = None
 
-    if gender in ("female", "male", "other"):
-        cu.gender = GenderEnum(gender)
-    elif not gender:
-        cu.gender = None
+    gender_val = gender if gender in ("female", "male", "other") else None
 
-    db.commit()
+    updates = {
+        "full_name":   full_name   or None,
+        "location":    location    or None,
+        "religion":    religion    or None,
+        "occupation":  occupation  or None,
+        "bio":         bio         or None,
+        "looking_for": looking_for or None,
+        "age":         age_int,
+        "gender":      gender_val,
+    }
+    get_users(db).update_one({"_id": ObjectId(cu.id)}, {"$set": updates})
     return _redirect_with_flash(request, f"/profile/{cu.id}",
                                 "Profile updated successfully!", "success")
 
@@ -378,7 +382,7 @@ def edit_profile_post(
 @app.post("/profile/photo")
 async def upload_photo(
     request: Request,
-    db:      Session = Depends(get_db),
+    db:      Database = Depends(get_db),
     photo:   UploadFile = File(...),
 ):
     cu = get_current_user(request, db)
@@ -400,36 +404,37 @@ async def upload_photo(
 
     if cu.profile_photo:
         old = UPLOAD_DIR / cu.profile_photo
-        if old.exists():
-            old.unlink(missing_ok=True)
+        old.unlink(missing_ok=True)
 
     filepath.write_bytes(contents)
-    cu.profile_photo = filename
-    db.commit()
+    get_users(db).update_one({"_id": ObjectId(cu.id)}, {"$set": {"profile_photo": filename}})
 
-    return _redirect_with_flash(request, "/profile/edit",
-                                "Profile photo updated!", "success")
+    return _redirect_with_flash(request, "/profile/edit", "Profile photo updated!", "success")
 
 
-# ── PROFILE VIEW — must come after /profile/edit ──────────────────────────────
+# ── PROFILE VIEW — MUST come after /profile/edit ──────────────────────────────
 @app.get("/profile/{user_id}", response_class=HTMLResponse)
-def view_profile(user_id: int, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
-    if not user:
+def view_profile(user_id: str, request: Request, db: Database = Depends(get_db)):
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
         raise HTTPException(status_code=404, detail="Profile not found")
-    return render(request, "profile_view.html", {"user": user}, db)
+    doc = get_users(db).find_one({"_id": oid, "is_active": True})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return render(request, "profile_view.html", {"user": User(doc)}, db)
 
 
 # ── ADMIN ─────────────────────────────────────────────────────────────────────
-def _admin_ctx(request: Request, db: Session) -> User:
-    admin = get_current_user(request, db)
-    if not admin or admin.role != RoleEnum.admin:
+def _require_admin(request: Request, db: Database):
+    cu = get_current_user(request, db)
+    if not cu or cu.role.value != "admin":
         raise HTTPException(status_code=302, headers={"Location": "/login"})
-    return admin
+    return cu
 
 
-def admin_render(request: Request, template: str, context: dict, db: Session) -> HTMLResponse:
-    admin = _admin_ctx(request, db)
+def admin_render(request: Request, template: str, context: dict, db: Database) -> HTMLResponse:
+    admin = _require_admin(request, db)
     msgs  = get_flashes(request)
     ctx   = {"request": request, "admin": admin, "messages": msgs}
     ctx.update(context)
@@ -439,59 +444,59 @@ def admin_render(request: Request, template: str, context: dict, db: Session) ->
 
 
 @app.get("/admin", response_class=HTMLResponse)
-def admin_dashboard(request: Request, db: Session = Depends(get_db)):
-    admin = get_current_user(request, db)
-    if not admin or admin.role != RoleEnum.admin:
+def admin_dashboard(request: Request, db: Database = Depends(get_db)):
+    cu = get_current_user(request, db)
+    if not cu or cu.role.value != "admin":
         return RedirectResponse("/login", status_code=302)
 
-    today     = datetime.utcnow().date()
-    new_today = db.query(User).filter(
-        User.role == RoleEnum.user,
-        User.created_at >= datetime(today.year, today.month, today.day),
-    ).count()
+    users = get_users(db)
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
-    return admin_render(request, "admin/dashboard.html", {
-        "stats": {
-            "total_users":  db.query(User).filter(User.role == RoleEnum.user).count(),
-            "active_users": db.query(User).filter(User.role == RoleEnum.user, User.is_active == True).count(),
-            "female_users": db.query(User).filter(User.role == RoleEnum.user, User.gender == GenderEnum.female).count(),
-            "male_users":   db.query(User).filter(User.role == RoleEnum.user, User.gender == GenderEnum.male).count(),
-            "new_today":    new_today,
-        },
-        "recent_users": db.query(User).order_by(User.created_at.desc()).limit(10).all(),
-    }, db)
+    stats = {
+        "total_users":  users.count_documents({"role": "user"}),
+        "active_users": users.count_documents({"role": "user", "is_active": True}),
+        "female_users": users.count_documents({"role": "user", "gender": "female"}),
+        "male_users":   users.count_documents({"role": "user", "gender": "male"}),
+        "new_today":    users.count_documents({"role": "user", "created_at": {"$gte": today}}),
+    }
+    recent_docs  = list(users.find().sort("created_at", -1).limit(10))
+    recent_users = [User(d) for d in recent_docs]
+
+    return admin_render(request, "admin/dashboard.html",
+                        {"stats": stats, "recent_users": recent_users}, db)
 
 
 @app.get("/admin/users", response_class=HTMLResponse)
 def admin_users(
     request: Request,
-    db:      Session = Depends(get_db),
+    db:      Database = Depends(get_db),
     q:       str = "",
     filter:  str = "",
     role:    str = "",
     page:    int = 1,
 ):
-    admin = get_current_user(request, db)
-    if not admin or admin.role != RoleEnum.admin:
+    cu = get_current_user(request, db)
+    if not cu or cu.role.value != "admin":
         return RedirectResponse("/login", status_code=302)
 
     PAGE_SIZE = 25
-    query = db.query(User)
-    if q:
-        like  = f"%{q}%"
-        query = query.filter(
-            (User.username.ilike(like)) | (User.email.ilike(like)) | (User.full_name.ilike(like))
-        )
-    if filter == "active":   query = query.filter(User.is_active == True)
-    elif filter == "inactive": query = query.filter(User.is_active == False)
-    if role == "user":  query = query.filter(User.role == RoleEnum.user)
-    elif role == "admin": query = query.filter(User.role == RoleEnum.admin)
+    filt: dict = {}
 
-    total       = query.count()
+    if q:
+        pattern = {"$regex": re.escape(q), "$options": "i"}
+        filt["$or"] = [{"username": pattern}, {"email": pattern}, {"full_name": pattern}]
+    if filter == "active":   filt["is_active"] = True
+    elif filter == "inactive": filt["is_active"] = False
+    if role in ("user", "admin"):
+        filt["role"] = role
+
+    users       = get_users(db)
+    total       = users.count_documents(filt)
     total_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
     page        = max(1, min(page, total_pages))
-    users       = query.order_by(User.created_at.desc()) \
-                       .offset((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).all()
+    docs        = list(users.find(filt).sort("created_at", -1)
+                             .skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE))
+    user_objs   = [User(d) for d in docs]
 
     params = []
     if q:      params.append(f"q={q}")
@@ -499,7 +504,7 @@ def admin_users(
     if role:   params.append(f"role={role}")
 
     return admin_render(request, "admin/users.html", {
-        "users": users, "total": total,
+        "users": user_objs, "total": total,
         "page": page, "total_pages": total_pages,
         "query_string": "&".join(params),
         "q": q, "filter": filter, "role_filter": role,
@@ -507,50 +512,72 @@ def admin_users(
 
 
 @app.get("/admin/users/{user_id}/toggle")
-def admin_toggle(user_id: int, request: Request, db: Session = Depends(get_db)):
-    admin = get_current_user(request, db)
-    if not admin or admin.role != RoleEnum.admin:
+def admin_toggle(user_id: str, request: Request, db: Database = Depends(get_db)):
+    cu = get_current_user(request, db)
+    if not cu or cu.role.value != "admin":
         return RedirectResponse("/login", status_code=302)
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        return _redirect_with_flash(request, "/admin/users", "Invalid user ID.", "error")
+
+    users = get_users(db)
+    doc   = users.find_one({"_id": oid})
+    if not doc:
         return _redirect_with_flash(request, "/admin/users", "User not found.", "error")
-    if user.id == admin.id:
+    if str(doc["_id"]) == cu.id:
         return _redirect_with_flash(request, "/admin/users", "Cannot deactivate your own account.", "error")
-    user.is_active = not user.is_active
-    db.commit()
+
+    new_status = not doc.get("is_active", True)
+    users.update_one({"_id": oid}, {"$set": {"is_active": new_status}})
+    action = "activated" if new_status else "deactivated"
     return _redirect_with_flash(request, "/admin/users",
-                                f"{user.username} {'activated' if user.is_active else 'deactivated'}.", "success")
+                                f"{doc['username']} {action}.", "success")
 
 
 @app.get("/admin/users/{user_id}/delete")
-def admin_delete(user_id: int, request: Request, db: Session = Depends(get_db)):
-    admin = get_current_user(request, db)
-    if not admin or admin.role != RoleEnum.admin:
+def admin_delete(user_id: str, request: Request, db: Database = Depends(get_db)):
+    cu = get_current_user(request, db)
+    if not cu or cu.role.value != "admin":
         return RedirectResponse("/login", status_code=302)
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        return _redirect_with_flash(request, "/admin/users", "Invalid user ID.", "error")
+
+    users = get_users(db)
+    doc   = users.find_one({"_id": oid})
+    if not doc:
         return _redirect_with_flash(request, "/admin/users", "User not found.", "error")
-    if user.id == admin.id:
+    if str(doc["_id"]) == cu.id:
         return _redirect_with_flash(request, "/admin/users", "Cannot delete your own account.", "error")
-    if user.profile_photo:
-        (UPLOAD_DIR / user.profile_photo).unlink(missing_ok=True)
-    name = user.username
-    db.delete(user)
-    db.commit()
-    return _redirect_with_flash(request, "/admin/users", f"{name} deleted.", "success")
+
+    if doc.get("profile_photo"):
+        (UPLOAD_DIR / doc["profile_photo"]).unlink(missing_ok=True)
+
+    users.delete_one({"_id": oid})
+    return _redirect_with_flash(request, "/admin/users",
+                                f"{doc['username']} deleted.", "success")
 
 
 @app.get("/admin/users/{user_id}/make-admin")
-def admin_promote(user_id: int, request: Request, db: Session = Depends(get_db)):
-    admin = get_current_user(request, db)
-    if not admin or admin.role != RoleEnum.admin:
+def admin_promote(user_id: str, request: Request, db: Database = Depends(get_db)):
+    cu = get_current_user(request, db)
+    if not cu or cu.role.value != "admin":
         return RedirectResponse("/login", status_code=302)
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        return _redirect_with_flash(request, "/admin/users", "Invalid user ID.", "error")
+
+    users = get_users(db)
+    doc   = users.find_one({"_id": oid})
+    if not doc:
         return _redirect_with_flash(request, "/admin/users", "User not found.", "error")
-    user.role = RoleEnum.admin
-    db.commit()
-    return _redirect_with_flash(request, "/admin/users", f"{user.username} promoted to admin.", "success")
+
+    users.update_one({"_id": oid}, {"$set": {"role": "admin"}})
+    return _redirect_with_flash(request, "/admin/users",
+                                f"{doc['username']} promoted to admin.", "success")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
