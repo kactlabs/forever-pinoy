@@ -96,7 +96,7 @@
       <div class="photo-section">
         <div class="photo-frame" id="photoFrame">
           {% if current_user.profile_photo %}
-            <img src="/static/uploads/{{ current_user.profile_photo }}" id="photoPreviewImg" />
+            <img src="{{ current_user.profile_photo }}" id="photoPreviewImg" />
           {% else %}
             <i class="fa-regular fa-user"></i>
           {% endif %}

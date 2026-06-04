@@ -189,7 +189,7 @@
       <div class="card">
         <div class="photo-wrap">
           {% if m.profile_photo %}
-            <img src="/static/uploads/{{ m.profile_photo }}" alt="{{ m.full_name or m.username }}" />
+            <img src="{{ m.profile_photo }}" alt="{{ m.full_name or m.username }}" />
           {% else %}
             <div class="placeholder-photo">
               <i class="fa-regular fa-user"></i>

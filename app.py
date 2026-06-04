@@ -16,10 +16,12 @@ from pymongo.database import Database
 
 from database import get_db, get_users, ensure_indexes, User
 from auth import hash_password, verify_password, create_access_token, get_current_user
+import cloudinary_helper
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 BASE_DIR   = Path(__file__).resolve().parent
 IS_VERCEL  = bool(os.environ.get("VERCEL"))
+# Local fallback dir — only used when Cloudinary env vars are not set
 UPLOAD_DIR = Path("/tmp/uploads") if IS_VERCEL else BASE_DIR / "static" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -398,17 +400,40 @@ async def upload_photo(
         return _redirect_with_flash(request, "/profile/edit",
                                     "Image too large. Maximum 5 MB.", "error")
 
-    ext      = Path(photo.filename).suffix.lower() or ".jpg"
-    filename = f"user_{cu.id}_{uuid.uuid4().hex[:8]}{ext}"
-    filepath = UPLOAD_DIR / filename
+    try:
+        if cloudinary_helper.is_configured():
+            # ── Cloudinary path ───────────────────────────────────────────────
+            # Delete old Cloudinary image if it exists
+            if cu.profile_photo and "cloudinary.com" in (cu.profile_photo or ""):
+                old_pid = cloudinary_helper.extract_public_id(cu.profile_photo)
+                if old_pid:
+                    try:
+                        cloudinary_helper.delete_photo(old_pid)
+                    except Exception:
+                        pass   # non-fatal — old image cleanup failure is OK
 
-    if cu.profile_photo:
-        old = UPLOAD_DIR / cu.profile_photo
-        old.unlink(missing_ok=True)
+            public_id  = f"user_{cu.id}_{uuid.uuid4().hex[:8]}"
+            photo_url  = cloudinary_helper.upload_photo(contents, public_id)
+        else:
+            # ── Local fallback (dev without Cloudinary credentials) ───────────
+            if cu.profile_photo and not cu.profile_photo.startswith("http"):
+                (UPLOAD_DIR / cu.profile_photo).unlink(missing_ok=True)
 
-    filepath.write_bytes(contents)
-    get_users(db).update_one({"_id": ObjectId(cu.id)}, {"$set": {"profile_photo": filename}})
+            ext       = Path(photo.filename).suffix.lower() or ".jpg"
+            filename  = f"user_{cu.id}_{uuid.uuid4().hex[:8]}{ext}"
+            (UPLOAD_DIR / filename).write_bytes(contents)
+            photo_url = f"/static/uploads/{filename}"
 
+    except RuntimeError as exc:
+        # Cloudinary not configured and we're on Vercel — shouldn't happen if env vars are set
+        print(f"[upload_photo] error: {exc}")
+        return _redirect_with_flash(request, "/profile/edit", str(exc), "error")
+    except Exception as exc:
+        import traceback; traceback.print_exc()
+        return _redirect_with_flash(request, "/profile/edit",
+                                    "Photo upload failed. Please try again.", "error")
+
+    get_users(db).update_one({"_id": ObjectId(cu.id)}, {"$set": {"profile_photo": photo_url}})
     return _redirect_with_flash(request, "/profile/edit", "Profile photo updated!", "success")
 
 
@@ -553,7 +578,16 @@ def admin_delete(user_id: str, request: Request, db: Database = Depends(get_db))
         return _redirect_with_flash(request, "/admin/users", "Cannot delete your own account.", "error")
 
     if doc.get("profile_photo"):
-        (UPLOAD_DIR / doc["profile_photo"]).unlink(missing_ok=True)
+        photo = doc["profile_photo"]
+        if cloudinary_helper.is_configured() and "cloudinary.com" in photo:
+            pid = cloudinary_helper.extract_public_id(photo)
+            if pid:
+                try: cloudinary_helper.delete_photo(pid)
+                except Exception: pass
+        else:
+            # local fallback
+            if not photo.startswith("http"):
+                (UPLOAD_DIR / photo).unlink(missing_ok=True)
 
     users.delete_one({"_id": oid})
     return _redirect_with_flash(request, "/admin/users",

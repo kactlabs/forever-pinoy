@@ -8,3 +8,4 @@ itsdangerous==2.2.0
 starlette==0.37.2
 aiofiles==23.2.1
 pymongo==4.7.2
+cloudinary==1.40.0

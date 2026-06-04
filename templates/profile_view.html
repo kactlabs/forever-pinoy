@@ -145,7 +145,7 @@
   <div class="profile-hero">
     <div class="avatar-wrap">
       {% if user.profile_photo %}
-        <img src="/static/uploads/{{ user.profile_photo }}" alt="{{ user.full_name or user.username }}" />
+        <img src="{{ user.profile_photo }}" alt="{{ user.full_name or user.username }}" />
       {% else %}
         <div class="avatar-placeholder"><i class="fa-regular fa-user"></i></div>
       {% endif %}

@@ -46,7 +46,7 @@
           <div style="display:flex;align-items:center;gap:0.6rem;">
             <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red-soft),var(--cream-dark));display:flex;align-items:center;justify-content:center;font-size:0.9rem;">
               {% if user.profile_photo %}
-                <img src="/static/uploads/{{ user.profile_photo }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+                <img src="{{ user.profile_photo }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
               {% else %}
                 👤
               {% endif %}

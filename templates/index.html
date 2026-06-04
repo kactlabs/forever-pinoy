@@ -382,7 +382,7 @@
       <div class="card profile-card">
         <div class="photo-wrap">
           {% if member.profile_photo %}
-            <img src="/static/uploads/{{ member.profile_photo }}" alt="{{ member.full_name or member.username }}" />
+            <img src="{{ member.profile_photo }}" alt="{{ member.full_name or member.username }}" />
           {% else %}
             <div class="placeholder-photo">
               <i class="fa-regular fa-user" style="font-size:3rem;"></i>
