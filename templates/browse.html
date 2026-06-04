@@ -151,15 +151,6 @@
   <form method="get" action="/browse">
     <div class="filter-bar">
       <div class="form-group">
-        <label>Gender</label>
-        <select class="form-control" name="gender">
-          <option value="">All</option>
-          <option value="female" {% if filters.gender=='female' %}selected{% endif %}>Female</option>
-          <option value="male"   {% if filters.gender=='male'   %}selected{% endif %}>Male</option>
-          <option value="other"  {% if filters.gender=='other'  %}selected{% endif %}>Other</option>
-        </select>
-      </div>
-      <div class="form-group">
         <label>Age Min</label>
         <input class="form-control" type="number" name="age_min"
                placeholder="18" min="18" max="99" value="{{ filters.age_min or '' }}" />

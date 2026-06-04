@@ -12,7 +12,19 @@ from pymongo.collection import Collection
 
 # ── Connection ────────────────────────────────────────────────────────────────
 MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
-DB_NAME     = os.environ.get("MONGODB_DB", "pinay_cupid")
+_db_env     = os.environ.get("MONGODB_DB", "").strip()
+
+# Extract DB name from URI path if MONGODB_DB not explicitly set
+# e.g. mongodb+srv://user:pass@host/pinay_cupid?... → "pinay_cupid"
+if not _db_env:
+    try:
+        _path = MONGODB_URI.split("?")[0]          # strip query params
+        _name = _path.rsplit("/", 1)[-1].strip()   # take last path segment
+        _db_env = _name if _name else "pinay_cupid"
+    except Exception:
+        _db_env = "pinay_cupid"
+
+DB_NAME = _db_env or "pinay_cupid"
 
 _client: MongoClient | None = None
 

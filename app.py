@@ -158,13 +158,12 @@ def register_post(
     confirm_password: str = Form(...),
     full_name:        str = Form(""),
     age:              str = Form(""),
-    gender:           str = Form(""),
     location:         str = Form(""),
 ):
     _seed_admin(db)
     form = {"username": username, "email": email,
             "full_name": full_name, "age": age,
-            "gender": gender, "location": location}
+            "location": location}
 
     if password != confirm_password:
         return flash_error(request, "register.html", {"form": form}, db, "Passwords do not match.")
@@ -188,8 +187,6 @@ def register_post(
         except ValueError:
             age_int = None
 
-    gender_val = gender if gender in ("female", "male", "other") else None
-
     try:
         doc = {
             "username":        username,
@@ -201,7 +198,7 @@ def register_post(
             "created_at":      datetime.utcnow(),
             "full_name":       full_name or None,
             "age":             age_int,
-            "gender":          gender_val,
+            "gender":          "female",   # platform is women-only
             "location":        location or None,
             "bio":             None,
             "looking_for":     None,
@@ -279,17 +276,15 @@ def logout(request: Request):
 def browse(
     request:  Request,
     db:       Database = Depends(get_db),
-    gender:   str = "",
     age_min:  str = "",
     age_max:  str = "",
     location: str = "",
     page:     int = 1,
 ):
     PAGE_SIZE = 20
-    filt: dict = {"is_active": True, "role": "user"}
+    # Platform is women-only — always filter to female
+    filt: dict = {"is_active": True, "role": "user", "gender": "female"}
 
-    if gender in ("female", "male", "other"):
-        filt["gender"] = gender
     age_q: dict = {}
     if age_min:
         try: age_q["$gte"] = int(age_min)
@@ -311,7 +306,6 @@ def browse(
     members     = [User(d) for d in docs]
 
     params = []
-    if gender:   params.append(f"gender={gender}")
     if age_min:  params.append(f"age_min={age_min}")
     if age_max:  params.append(f"age_max={age_max}")
     if location: params.append(f"location={location}")
@@ -320,7 +314,7 @@ def browse(
         "members": members, "total": total,
         "page": page, "total_pages": total_pages,
         "query_string": "&".join(params),
-        "filters": {"q": "", "gender": gender, "age_min": age_min,
+        "filters": {"q": "", "gender": "", "age_min": age_min,
                     "age_max": age_max, "location": location},
     }, db)
 
@@ -348,7 +342,6 @@ def edit_profile_post(
     db:          Database = Depends(get_db),
     full_name:   str = Form(""),
     age:         str = Form(""),
-    gender:      str = Form(""),
     location:    str = Form(""),
     religion:    str = Form(""),
     occupation:  str = Form(""),
@@ -364,8 +357,6 @@ def edit_profile_post(
         try:   age_int = int(age.strip())
         except ValueError: pass
 
-    gender_val = gender if gender in ("female", "male", "other") else None
-
     updates = {
         "full_name":   full_name   or None,
         "location":    location    or None,
@@ -374,7 +365,7 @@ def edit_profile_post(
         "bio":         bio         or None,
         "looking_for": looking_for or None,
         "age":         age_int,
-        "gender":      gender_val,
+        "gender":      "female",   # always female — women-only platform
     }
     get_users(db).update_one({"_id": ObjectId(cu.id)}, {"$set": updates})
     return _redirect_with_flash(request, f"/profile/{cu.id}",
@@ -481,7 +472,6 @@ def admin_dashboard(request: Request, db: Database = Depends(get_db)):
         "total_users":  users.count_documents({"role": "user"}),
         "active_users": users.count_documents({"role": "user", "is_active": True}),
         "female_users": users.count_documents({"role": "user", "gender": "female"}),
-        "male_users":   users.count_documents({"role": "user", "gender": "male"}),
         "new_today":    users.count_documents({"role": "user", "created_at": {"$gte": today}}),
     }
     recent_docs  = list(users.find().sort("created_at", -1).limit(10))

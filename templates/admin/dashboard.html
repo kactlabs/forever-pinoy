@@ -23,14 +23,7 @@
     <div class="stat-icon stat-icon-blue"><span>👩</span></div>
     <div class="stat-info">
       <strong>{{ stats.female_users }}</strong>
-      <span>Female Profiles</span>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon stat-icon-gold"><span>👨</span></div>
-    <div class="stat-info">
-      <strong>{{ stats.male_users }}</strong>
-      <span>Male Profiles</span>
+      <span>Female Members</span>
     </div>
   </div>
   <div class="stat-card">
@@ -54,7 +47,6 @@
         <th>#</th>
         <th>Username</th>
         <th>Email</th>
-        <th>Gender</th>
         <th>Location</th>
         <th>Role</th>
         <th>Status</th>
@@ -71,7 +63,6 @@
           {% if user.full_name %}<br/><small style="color:var(--text-light);">{{ user.full_name }}</small>{% endif %}
         </td>
         <td>{{ user.email }}</td>
-        <td>{{ user.gender.value if user.gender else '—' }}</td>
         <td>{{ user.location or '—' }}</td>
         <td><span class="badge badge-{{ user.role.value }}">{{ user.role.value }}</span></td>
         <td>
@@ -93,7 +84,7 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="9" style="text-align:center;color:var(--text-light);padding:2rem;">No members yet.</td></tr>
+      <tr><td colspan="8" style="text-align:center;color:var(--text-light);padding:2rem;">No members yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

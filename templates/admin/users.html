@@ -30,7 +30,7 @@
         <th>#</th>
         <th>Member</th>
         <th>Email</th>
-        <th>Age / Gender</th>
+        <th>Age</th>
         <th>Location</th>
         <th>Role</th>
         <th>Status</th>
@@ -58,7 +58,7 @@
           </div>
         </td>
         <td>{{ user.email }}</td>
-        <td>{{ user.age or '—' }} / {{ user.gender.value if user.gender else '—' }}</td>
+        <td>{{ user.age or '—' }}</td>
         <td>{{ user.location or '—' }}</td>
         <td><span class="badge badge-{{ user.role.value }}">{{ user.role.value }}</span></td>
         <td>
@@ -92,7 +92,7 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="9" style="text-align:center;color:var(--text-light);padding:2.5rem;">No members found.</td></tr>
+      <tr><td colspan="8" style="text-align:center;color:var(--text-light);padding:2.5rem;">No members found.</td></tr>
       {% endfor %}
     </tbody>
   </table>

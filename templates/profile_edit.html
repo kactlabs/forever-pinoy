@@ -141,13 +141,10 @@
                    min="18" max="100" placeholder="Your age" />
           </div>
           <div class="form-group">
-            <label>Gender</label>
-            <select class="form-control" name="gender">
-              <option value="">Select</option>
-              <option value="female" {% if current_user.gender and current_user.gender.value=='female' %}selected{% endif %}>Female</option>
-              <option value="male"   {% if current_user.gender and current_user.gender.value=='male'   %}selected{% endif %}>Male</option>
-              <option value="other"  {% if current_user.gender and current_user.gender.value=='other'  %}selected{% endif %}>Other</option>
-            </select>
+            <label>Location</label>
+            <input class="form-control" type="text" name="location"
+                   value="{{ current_user.location or '' }}"
+                   placeholder="City, Province" />
           </div>
         </div>
 

@@ -129,21 +129,11 @@
                    placeholder="Your age" value="{{ form.age or '' }}" min="18" max="100" />
           </div>
         </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Gender</label>
-            <select class="form-control" name="gender">
-              <option value="">Select gender</option>
-              <option value="female" {% if form.gender=='female' %}selected{% endif %}>Female</option>
-              <option value="male"   {% if form.gender=='male'   %}selected{% endif %}>Male</option>
-              <option value="other"  {% if form.gender=='other'  %}selected{% endif %}>Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Location</label>
-            <input class="form-control" type="text" name="location"
-                   placeholder="City, Province" value="{{ form.location or '' }}" />
-          </div>
+
+        <div class="form-group">
+          <label>Location</label>
+          <input class="form-control" type="text" name="location"
+                 placeholder="City, Province" value="{{ form.location or '' }}" />
         </div>
 
         <div class="notice">

@@ -1,4 +1,5 @@
 import os
+import hashlib
 from datetime import datetime, timedelta
 
 from passlib.context import CryptContext
@@ -13,12 +14,20 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7   # 7 days
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def _prepare_password(password: str) -> str:
+    """
+    bcrypt silently truncates at 72 bytes and newer versions raise an error.
+    SHA-256 the password first so any length works safely.
+    """
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(_prepare_password(password))
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return pwd_context.verify(_prepare_password(plain), hashed)
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
