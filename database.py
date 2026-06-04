@@ -2,8 +2,11 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 import enum
+import os
 
-DATABASE_URL = "sqlite:///./pinay_cupid.db"
+# On Vercel the filesystem is read-only except /tmp
+_DB_PATH = "/tmp/pinay_cupid.db" if os.environ.get("VERCEL") else "./pinay_cupid.db"
+DATABASE_URL = f"sqlite:///{_DB_PATH}"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

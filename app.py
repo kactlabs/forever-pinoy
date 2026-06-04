@@ -3,6 +3,7 @@ import uuid
 import shutil
 from pathlib import Path
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, Request, Form, Depends, UploadFile, File, HTTPException
@@ -15,46 +16,100 @@ from database import init_db, get_db, User, RoleEnum, GenderEnum
 from auth import (
     hash_password, verify_password,
     create_access_token, get_current_user,
-    require_user, require_admin,
 )
 
 # ── App setup ────────────────────────────────────────────────────────────────
-app = FastAPI(title="Pinay Cupid")
-
 BASE_DIR = Path(__file__).resolve().parent
-UPLOAD_DIR = BASE_DIR / "static" / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+# On Vercel only /tmp is writable; use it for uploads too
+IS_VERCEL = bool(os.environ.get("VERCEL"))
+UPLOAD_DIR = Path("/tmp/uploads") if IS_VERCEL else BASE_DIR / "static" / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 MAX_PHOTO_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
+def _seed_admin():
+    """Create the default admin account if it doesn't exist yet."""
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        if not db.query(User).filter(User.role == RoleEnum.admin).first():
+            admin = User(
+                username="admin",
+                email="admin@pinaycupid.com",
+                hashed_password=hash_password("admin123"),
+                role=RoleEnum.admin,
+                is_active=True,
+                full_name="Site Administrator",
+            )
+            db.add(admin)
+            db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    _seed_admin()
+    yield
+
+
+app = FastAPI(title="Pinay Cupid", lifespan=lifespan)
+
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
 # ── Flash message helpers ────────────────────────────────────────────────────
+# Uses a signed cookie so flash works on stateless/serverless deployments too.
+import json
+from itsdangerous import URLSafeSerializer
+
+_FLASH_SECRET = os.environ.get("SECRET_KEY", "pinay-cupid-flash-secret-2024")
+_signer = URLSafeSerializer(_FLASH_SECRET, salt="flash")
+
+
 class FlashMessage:
     def __init__(self, text: str, type: str = "info"):
         self.text = text
         self.type = type
 
 
-_flash_store: dict[str, list[FlashMessage]] = {}
+def _encode_flash(messages: list[FlashMessage]) -> str:
+    data = [{"text": m.text, "type": m.type} for m in messages]
+    return _signer.dumps(data)
 
 
-def set_flash(request: Request, text: str, type: str = "info"):
-    key = request.cookies.get("session_id", "anon")
-    _flash_store.setdefault(key, []).append(FlashMessage(text, type))
+def _decode_flash(cookie_val: str) -> list[FlashMessage]:
+    try:
+        data = _signer.loads(cookie_val)
+        return [FlashMessage(d["text"], d["type"]) for d in data]
+    except Exception:
+        return []
 
 
 def get_flashes(request: Request) -> list[FlashMessage]:
-    key = request.cookies.get("session_id", "anon")
-    msgs = _flash_store.pop(key, [])
-    return msgs
+    raw = request.cookies.get("_flash")
+    if not raw:
+        return []
+    return _decode_flash(raw)
 
 
-def _session_key(request: Request) -> str:
-    return request.cookies.get("session_id") or str(uuid.uuid4())
+def _redirect_with_flash(request: Request, url: str, text: str, type: str = "info") -> RedirectResponse:
+    resp = RedirectResponse(url, status_code=302)
+    existing = get_flashes(request)
+    existing.append(FlashMessage(text, type))
+    resp.set_cookie("_flash", _encode_flash(existing), httponly=True, max_age=60, samesite="lax")
+    return resp
+
+
+def _clear_flash(response) -> None:
+    response.delete_cookie("_flash")
 
 
 def render(
@@ -68,39 +123,11 @@ def render(
     messages = get_flashes(request)
     ctx = {"request": request, "current_user": current_user, "messages": messages}
     ctx.update(context)
-    return templates.TemplateResponse(template, ctx, status_code=status_code)
-
-
-def _redirect_with_flash(request: Request, url: str, text: str, type: str = "info"):
-    resp = RedirectResponse(url, status_code=302)
-    key = _session_key(request)
-    resp.set_cookie("session_id", key, httponly=True, max_age=86400 * 7)
-    _flash_store.setdefault(key, []).append(FlashMessage(text, type))
+    resp = templates.TemplateResponse(template, ctx, status_code=status_code)
+    # Clear flash cookie after reading
+    resp.delete_cookie("_flash")
     return resp
 
-
-# ── Init DB on startup ───────────────────────────────────────────────────────
-@app.on_event("startup")
-def startup():
-    init_db()
-    # Create default admin if none exists
-    from database import SessionLocal
-    db = SessionLocal()
-    try:
-        admin = db.query(User).filter(User.role == RoleEnum.admin).first()
-        if not admin:
-            admin = User(
-                username="admin",
-                email="admin@pinaycupid.com",
-                hashed_password=hash_password("admin123"),
-                role=RoleEnum.admin,
-                is_active=True,
-                full_name="Site Administrator",
-            )
-            db.add(admin)
-            db.commit()
-    finally:
-        db.close()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -146,28 +173,23 @@ def register_post(
     }
 
     if password != confirm_password:
-        set_flash(request, "Passwords do not match.", "error")
-        return render(request, "register.html", {"form": form_data}, db, 400)
+        return render(request, "register.html", {"form": form_data, "messages": [FlashMessage("Passwords do not match.", "error")]}, db, 400)
 
     if len(password) < 6:
-        set_flash(request, "Password must be at least 6 characters.", "error")
-        return render(request, "register.html", {"form": form_data}, db, 400)
+        return render(request, "register.html", {"form": form_data, "messages": [FlashMessage("Password must be at least 6 characters.", "error")]}, db, 400)
 
     if db.query(User).filter(User.username == username).first():
-        set_flash(request, "Username already taken. Please choose another.", "error")
-        return render(request, "register.html", {"form": form_data}, db, 400)
+        return render(request, "register.html", {"form": form_data, "messages": [FlashMessage("Username already taken. Please choose another.", "error")]}, db, 400)
 
     if db.query(User).filter(User.email == email).first():
-        set_flash(request, "Email already registered. Try logging in.", "error")
-        return render(request, "register.html", {"form": form_data}, db, 400)
+        return render(request, "register.html", {"form": form_data, "messages": [FlashMessage("Email already registered. Try logging in.", "error")]}, db, 400)
 
     age_int = None
     if age:
         try:
             age_int = int(age)
             if age_int < 18:
-                set_flash(request, "You must be 18 or older to register.", "error")
-                return render(request, "register.html", {"form": form_data}, db, 400)
+                return render(request, "register.html", {"form": form_data, "messages": [FlashMessage("You must be 18 or older to register.", "error")]}, db, 400)
         except ValueError:
             age_int = None
 
@@ -221,22 +243,24 @@ def login_post(
     )
 
     if not user or not verify_password(password, user.hashed_password):
-        set_flash(request, "Invalid username or password.", "error")
         return render(
             request, "login.html",
-            {"form": {"username": username}, "is_admin": role == "admin"},
+            {"form": {"username": username}, "is_admin": role == "admin",
+             "messages": [FlashMessage("Invalid username or password.", "error")]},
             db, 400,
         )
 
     if not user.is_active:
-        set_flash(request, "Your account has been deactivated. Contact support.", "error")
-        return render(request, "login.html", {"form": {}, "is_admin": False}, db, 400)
+        return render(request, "login.html",
+                      {"form": {}, "is_admin": False,
+                       "messages": [FlashMessage("Your account has been deactivated. Contact support.", "error")]},
+                      db, 400)
 
     if role == "admin" and user.role != RoleEnum.admin:
-        set_flash(request, "You do not have admin privileges.", "error")
         return render(
             request, "login.html",
-            {"form": {"username": username}, "is_admin": True},
+            {"form": {"username": username}, "is_admin": True,
+             "messages": [FlashMessage("You do not have admin privileges.", "error")]},
             db, 403,
         )
 
@@ -331,14 +355,6 @@ def my_profile(request: Request, db: Session = Depends(get_db)):
     return RedirectResponse(f"/profile/{current_user.id}", status_code=302)
 
 
-@app.get("/profile/{user_id}", response_class=HTMLResponse)
-def view_profile(user_id: int, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Profile not found")
-    return render(request, "profile_view.html", {"user": user}, db)
-
-
 # ── PROFILE EDIT ───────────────────────────────────────────────────────────────
 
 @app.get("/profile/edit", response_class=HTMLResponse)
@@ -347,6 +363,16 @@ def edit_profile_get(request: Request, db: Session = Depends(get_db)):
     if not current_user:
         return RedirectResponse("/login", status_code=302)
     return render(request, "profile_edit.html", {}, db)
+
+
+# ── PROFILE VIEW ── (must come AFTER /profile/edit to avoid routing conflict) ──
+
+@app.get("/profile/{user_id}", response_class=HTMLResponse)
+def view_profile(user_id: int, request: Request, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return render(request, "profile_view.html", {"user": user}, db)
 
 
 @app.post("/profile/edit", response_class=HTMLResponse)
