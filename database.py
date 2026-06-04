@@ -12,10 +12,22 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 _DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 if _DATABASE_URL:
-    # Heroku/Vercel Postgres gives "postgres://..." — SQLAlchemy needs "postgresql://"
+    # Heroku/Vercel/Neon/Supabase may give "postgres://..." — SQLAlchemy needs "postgresql://"
     if _DATABASE_URL.startswith("postgres://"):
         _DATABASE_URL = _DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    engine = create_engine(_DATABASE_URL, pool_pre_ping=True)
+
+    # Use NullPool for serverless — each lambda gets a fresh connection, no pool needed
+    # This avoids "too many connections" errors on Neon/Supabase free tiers
+    from sqlalchemy.pool import NullPool
+    engine = create_engine(
+        _DATABASE_URL,
+        poolclass=NullPool,
+        pool_pre_ping=True,
+        connect_args={
+            "sslmode": "require",      # Neon + Supabase both require SSL
+            "connect_timeout": 10,
+        },
+    )
 else:
     _sqlite_path = "/tmp/pinay_cupid.db" if os.environ.get("VERCEL") else "./pinay_cupid.db"
     engine = create_engine(
@@ -66,14 +78,22 @@ class User(Base):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+_db_initialized = False
+
+
+def init_db():
+    """Create all tables (idempotent — safe to call many times)."""
+    global _db_initialized
+    if not _db_initialized:
+        Base.metadata.create_all(bind=engine)
+        _db_initialized = True
+
+
 def get_db():
+    """Yield a DB session, ensuring tables exist first."""
+    init_db()          # no-op after first call in this process
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-
-
-def init_db():
-    """Create all tables (safe to call multiple times — idempotent)."""
-    Base.metadata.create_all(bind=engine)

@@ -31,10 +31,10 @@ _signer       = URLSafeSerializer(_FLASH_SECRET, salt="flash")
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 def _seed_admin():
-    from database import SessionLocal
+    from database import SessionLocal, init_db as _init
+    _init()   # ensure tables exist before querying
     db = SessionLocal()
     try:
-        init_db()
         if not db.query(User).filter(User.role == RoleEnum.admin).first():
             db.add(User(
                 username="admin",
@@ -52,9 +52,19 @@ def _seed_admin():
         db.close()
 
 
+_seeded = False
+
+def _lazy_seed():
+    """Called on first request — ensures admin exists even if lifespan didn't run."""
+    global _seeded
+    if not _seeded:
+        _seed_admin()
+        _seeded = True
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _seed_admin()
+    _lazy_seed()
     yield
 
 
@@ -119,6 +129,7 @@ def flash_error(request: Request, template: str, context: dict,
 # ── HOME ──────────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, db: Session = Depends(get_db)):
+    _lazy_seed()
     members = (
         db.query(User)
         .filter(User.is_active == True, User.role == RoleEnum.user)
@@ -131,6 +142,7 @@ def home(request: Request, db: Session = Depends(get_db)):
 # ── REGISTER ──────────────────────────────────────────────────────────────────
 @app.get("/register", response_class=HTMLResponse)
 def register_get(request: Request, db: Session = Depends(get_db)):
+    _lazy_seed()
     return render(request, "register.html", {"form": {}}, db)
 
 
@@ -147,6 +159,7 @@ def register_post(
     gender:           str = Form(""),
     location:         str = Form(""),
 ):
+    _lazy_seed()
     form = {"username": username, "email": email,
             "full_name": full_name, "age": age,
             "gender": gender, "location": location}
@@ -190,6 +203,8 @@ def register_post(
         db.refresh(user)
     except Exception as exc:
         db.rollback()
+        import traceback
+        traceback.print_exc()
         print(f"[register] DB error: {exc}")
         return flash_error(request, "register.html", {"form": form}, db,
                            "Registration failed due to a server error. Please try again.", 500)
