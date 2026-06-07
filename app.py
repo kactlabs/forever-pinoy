@@ -174,15 +174,16 @@ def register_post(
     dob:              str = Form(""),
     age_pref_min:     str = Form("18"),
     age_pref_max:     str = Form("45"),
-    distance:         str = Form("50"),
-    location:         str = Form(""),
+    country:          str = Form(""),
+    state:            str = Form(""),
+    city:             str = Form(""),
     bio:              str = Form(""),
 ):
     _seed_admin(db)
     from datetime import date as _date
 
     form = {"username": username, "email": email, "full_name": full_name,
-            "gender": gender, "dob": dob, "location": location, "bio": bio}
+            "gender": gender, "dob": dob, "country": country, "state": state, "city": city, "bio": bio}
 
     if password != confirm_password:
         return flash_error(request, "register.html", {"form": form, "max_dob": ""}, db, "Passwords do not match.")
@@ -213,8 +214,10 @@ def register_post(
     except ValueError: age_pref_min_int = 18
     try: age_pref_max_int = int(age_pref_max)
     except ValueError: age_pref_max_int = 45
-    try: distance_int = int(distance)
-    except ValueError: distance_int = 50
+
+    # Build location string from city + state + country
+    loc_parts = [p.strip() for p in [city, state, country] if p.strip()]
+    location  = ", ".join(loc_parts) if loc_parts else None
 
     users = get_users(db)
     if users.find_one({"username": username}):
@@ -238,8 +241,10 @@ def register_post(
             "intent":          intent or None,
             "age_pref_min":    age_pref_min_int,
             "age_pref_max":    age_pref_max_int,
-            "distance":        distance_int,
-            "location":        location or None,
+            "country":         country.strip() or None,
+            "state":           state.strip() or None,
+            "city":            city.strip() or None,
+            "location":        location,
             "bio":             bio or None,
             "looking_for":     None,
             "religion":        None,
@@ -255,7 +260,6 @@ def register_post(
                            "Registration failed due to a server error. Please try again.", 500)
 
     token = create_access_token({"sub": user_id})
-    # Men go to browse (they answered all questions); women/others go to browse too
     resp = _redirect_with_flash(request, "/browse",
                                 f"Welcome to Forever Pinoy, {username}! Start browsing.", "success")
     resp.set_cookie("access_token", token, httponly=True, max_age=86400 * 7, samesite="lax")
@@ -401,7 +405,9 @@ def edit_profile_post(
     full_name:   str = Form(""),
     age:         str = Form(""),
     gender:      str = Form(""),
-    location:    str = Form(""),
+    country:     str = Form(""),
+    state:       str = Form(""),
+    city:        str = Form(""),
     religion:    str = Form(""),
     occupation:  str = Form(""),
     bio:         str = Form(""),
@@ -416,19 +422,26 @@ def edit_profile_post(
         try:   age_int = int(age.strip())
         except ValueError: pass
 
+    # Build location string from city + state + country
+    loc_parts = [p.strip() for p in [city, state, country] if p.strip()]
+    location  = ", ".join(loc_parts) if loc_parts else None
+
     updates = {
         "full_name":   full_name   or None,
-        "location":    location    or None,
+        "country":     country.strip() or None,
+        "state":       state.strip()   or None,
+        "city":        city.strip()    or None,
+        "location":    location,
         "religion":    religion    or None,
         "occupation":  occupation  or None,
         "bio":         bio         or None,
         "looking_for": looking_for or None,
         "age":         age_int,
     }
-    
+
     if gender and gender in ("female", "male", "other"):
         updates["gender"] = gender
-    
+
     get_users(db).update_one({"_id": ObjectId(cu.id)}, {"$set": updates})
     return _redirect_with_flash(request, f"/profile/{cu.id}",
                                 "Profile updated successfully!", "success")

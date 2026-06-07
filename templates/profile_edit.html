@@ -156,16 +156,31 @@
 
         <div class="two-col">
           <div class="form-group">
-            <label data-en="Location" data-fil="Lokasyon">Location</label>
-            <input class="form-control" type="text" name="location"
-                   value="{{ current_user.location or '' }}"
-                   placeholder="City, Province" />
+            <label data-en="Country" data-fil="Bansa">Country</label>
+            <select class="form-control" name="country" id="editCountry" onchange="editLoadStates()">
+              <option value="">Select country…</option>
+            </select>
           </div>
           <div class="form-group">
             <label data-en="Religion" data-fil="Relihiyon">Religion</label>
             <input class="form-control" type="text" name="religion"
                    value="{{ current_user.religion or '' }}"
                    placeholder="e.g. Catholic, Baptist..." />
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label data-en="State / Region" data-fil="Estado / Rehiyon">State / Region</label>
+            <select class="form-control" name="state" id="editState" onchange="editLoadCities()" disabled>
+              <option value="">Select state…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-en="City" data-fil="Lungsod">City</label>
+            <select class="form-control" name="city" id="editCity" disabled>
+              <option value="">Select city…</option>
+            </select>
           </div>
         </div>
 
@@ -210,5 +225,154 @@ function previewPhoto(input) {
     reader.readAsDataURL(input.files[0]);
   }
 }
+
+// ── Cascading location dropdowns (profile edit) ───────────────────────────
+// Uses countriesnow.space — free, no API key, CORS-open
+(function () {
+  const CN = 'https://countriesnow.space/api/v0.1';
+
+  const savedCountry = {{ ('"' ~ current_user.country ~ '"') if current_user.country else 'null' }};
+  const savedState   = {{ ('"' ~ current_user.state   ~ '"') if current_user.state   else 'null' }};
+  const savedCity    = {{ ('"' ~ current_user.city    ~ '"') if current_user.city    else 'null' }};
+
+  function setOptions(sel, items, valueFn, labelFn, placeholder, preselect, enable) {
+    sel.innerHTML = `<option value="">${placeholder}</option>`;
+    items.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value       = valueFn(item);
+      opt.textContent = labelFn(item);
+      if (preselect && opt.value === preselect) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.disabled = !enable || items.length === 0;
+  }
+
+  // Load countries, pre-select saved value, then chain state → city
+  fetch(`${CN}/countries/iso`)
+    .then(r => r.json())
+    .then(res => {
+      const data = (res.data || []).sort((a, b) => a.name.localeCompare(b.name));
+      setOptions(
+        document.getElementById('editCountry'),
+        data,
+        c => c.name,
+        c => c.name,
+        'Select country…',
+        savedCountry,
+        true
+      );
+      if (savedCountry) loadStates(savedCountry, savedState, savedCity);
+    })
+    .catch(err => console.error('Failed to load countries:', err));
+
+  function loadStates(country, preState, preCity) {
+    const stSel  = document.getElementById('editState');
+    const citSel = document.getElementById('editCity');
+
+    fetch(`${CN}/countries/states`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ country })
+    })
+      .then(r => r.json())
+      .then(res => {
+        const states = (res.data && res.data.states) ? res.data.states : [];
+        if (states.length === 0) {
+          loadCitiesDirect(country, preCity);
+          return;
+        }
+        setOptions(
+          stSel,
+          states.sort((a, b) => a.name.localeCompare(b.name)),
+          s => s.name,
+          s => s.name,
+          'Select state / region…',
+          preState,
+          true
+        );
+        if (preState) loadCities(country, preState, preCity);
+      })
+      .catch(err => console.error('Failed to load states:', err));
+  }
+
+  function loadCities(country, state, preCity) {
+    const citSel = document.getElementById('editCity');
+    citSel.innerHTML = '<option value="">Select city…</option>';
+    citSel.disabled  = true;
+    fetch(`${CN}/countries/state/cities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ country, state })
+    })
+      .then(r => r.json())
+      .then(res => {
+        const cities = res.data || [];
+        if (cities.length === 0) {
+          citSel.innerHTML = '<option value="">Not applicable</option>';
+          citSel.disabled  = true;
+          return;
+        }
+        setOptions(
+          citSel,
+          cities.sort((a, b) => a.localeCompare(b)),
+          c => c,
+          c => c,
+          'Select city…',
+          preCity,
+          true
+        );
+      })
+      .catch(err => console.error('Failed to load cities:', err));
+  }
+
+  function loadCitiesDirect(country, preCity) {
+    const citSel = document.getElementById('editCity');
+    citSel.innerHTML = '<option value="">Select city…</option>';
+    citSel.disabled  = true;
+    fetch(`${CN}/countries/cities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ country })
+    })
+      .then(r => r.json())
+      .then(res => {
+        const cities = res.data || [];
+        if (cities.length === 0) {
+          citSel.innerHTML = '<option value="">Not applicable</option>';
+          citSel.disabled  = true;
+          return;
+        }
+        setOptions(
+          citSel,
+          cities.sort((a, b) => a.localeCompare(b)),
+          c => c,
+          c => c,
+          'Select city…',
+          preCity,
+          true
+        );
+      })
+      .catch(err => console.error('Failed to load cities:', err));
+  }
+
+  window.editLoadStates = function () {
+    const country = document.getElementById('editCountry').value;
+    const stSel   = document.getElementById('editState');
+    const citSel  = document.getElementById('editCity');
+    stSel.innerHTML  = '<option value="">Select state / region…</option>';
+    stSel.disabled   = true;
+    citSel.innerHTML = '<option value="">Select city…</option>';
+    citSel.disabled  = true;
+    if (!country) return;
+    loadStates(country, null, null);
+  };
+
+  window.editLoadCities = function () {
+    const country = document.getElementById('editCountry').value;
+    const state   = document.getElementById('editState').value;
+    if (!state) return;
+    loadCities(country, state, null);
+  };
+})();
 </script>
 {% endblock %}

@@ -155,6 +155,18 @@ class User:
         return self._doc.get("location")
 
     @property
+    def country(self) -> str | None:
+        return self._doc.get("country")
+
+    @property
+    def state(self) -> str | None:
+        return self._doc.get("state")
+
+    @property
+    def city(self) -> str | None:
+        return self._doc.get("city")
+
+    @property
     def bio(self) -> str | None:
         return self._doc.get("bio")
 
@@ -189,10 +201,6 @@ class User:
     @property
     def age_pref_max(self) -> int:
         return self._doc.get("age_pref_max", 45)
-
-    @property
-    def distance(self) -> int:
-        return self._doc.get("distance", 50)
 
     # ── raw doc access ────────────────────────────────────────────────────────
     def raw(self) -> dict:
