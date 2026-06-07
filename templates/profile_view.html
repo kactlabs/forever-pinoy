@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ user.full_name or user.username }} — Pinay Cupid{% endblock %}
+{% block title %}{{ user.full_name or user.username }} — Forever Pinoy{% endblock %}
 
 {% block head %}
 <style>
@@ -151,11 +151,11 @@
       {% endif %}
     </div>
     <div class="profile-meta">
-      <p class="eyebrow">Member Profile</p>
+      <p class="eyebrow" data-en="Member Profile" data-fil="Profile ng Miyembro">Member Profile</p>
       <h1>{{ user.full_name or user.username }}</h1>
       <p class="sub">
         @{{ user.username }}
-        {% if user.age %} &middot; <strong>{{ user.age }}</strong> years old{% endif %}
+        {% if user.age %} &middot; <strong>{{ user.age }}</strong> <span data-en="years old" data-fil="taong gulang">years old</span>{% endif %}
         {% if user.location %} &middot; {{ user.location }}{% endif %}
       </p>
 
@@ -176,18 +176,22 @@
           <svg viewBox="0 0 24 24" fill="currentColor" style="color:#4caf7d;opacity:1;">
             <circle cx="12" cy="12" r="5"/>
           </svg>
-          Active
+          <span data-en="Active" data-fil="Aktibo">Active</span>
         </span>
       </div>
 
       <div class="profile-actions">
         {% if current_user and current_user.id != user.id %}
-          <a href="mailto:{{ user.email }}" class="btn btn-primary btn-sm">Send Message</a>
-          <button class="btn btn-ghost btn-sm">Send Wink</button>
+          <a href="mailto:{{ user.email }}" class="btn btn-primary btn-sm"
+             data-en="Send Message" data-fil="Magpadala ng Mensahe">Send Message</a>
+          <button class="btn btn-ghost btn-sm"
+                  data-en="Send Wink" data-fil="Magpadala ng Wink">Send Wink</button>
         {% elif current_user and current_user.id == user.id %}
-          <a href="/profile/edit" class="btn btn-primary btn-sm">Edit Profile</a>
+          <a href="/profile/edit" class="btn btn-primary btn-sm"
+             data-en="Edit Profile" data-fil="I-edit ang Profile">Edit Profile</a>
         {% else %}
-          <a href="/register" class="btn btn-primary btn-sm">Join to Connect</a>
+          <a href="/register" class="btn btn-primary btn-sm"
+             data-en="Join to Connect" data-fil="Sumali upang Kumonekta">Join to Connect</a>
         {% endif %}
       </div>
     </div>
@@ -198,7 +202,7 @@
     <div>
       {% if user.bio %}
       <div class="detail-block">
-        <div class="detail-block-header">About</div>
+        <div class="detail-block-header" data-en="About" data-fil="Tungkol">About</div>
         <div class="detail-block-body">
           <p class="bio-text">{{ user.bio }}</p>
         </div>
@@ -207,7 +211,7 @@
 
       {% if user.looking_for %}
       <div class="detail-block">
-        <div class="detail-block-header">Looking For</div>
+        <div class="detail-block-header" data-en="Looking For" data-fil="Naghahanap Ako ng">Looking For</div>
         <div class="detail-block-body">
           <p class="bio-text">{{ user.looking_for }}</p>
         </div>
@@ -218,7 +222,11 @@
       <div class="detail-block">
         <div class="detail-block-body" style="text-align:center;padding:2.5rem;color:var(--ink-light);">
           <i class="fa-regular fa-file-lines" style="font-size:2rem;margin-bottom:0.8rem;display:block;opacity:0.3;"></i>
-          <p style="font-size:0.86rem;font-weight:300;">This member hasn't added a bio yet.</p>
+          <p style="font-size:0.86rem;font-weight:300;"
+             data-en="This member hasn't added a bio yet."
+             data-fil="Hindi pa nagdagdag ang miyembrong ito ng bio.">
+            This member hasn't added a bio yet.
+          </p>
         </div>
       </div>
       {% endif %}
@@ -226,40 +234,40 @@
 
     <div>
       <div class="detail-block">
-        <div class="detail-block-header">Details</div>
+        <div class="detail-block-header" data-en="Details" data-fil="Mga Detalye">Details</div>
         <div class="detail-block-body">
           {% if user.age %}
           <div class="detail-row">
-            <span class="label">Age</span>
+            <span class="label" data-en="Age" data-fil="Edad">Age</span>
             <span class="value">{{ user.age }}</span>
           </div>
           {% endif %}
           {% if user.gender %}
           <div class="detail-row">
-            <span class="label">Gender</span>
+            <span class="label" data-en="Gender" data-fil="Kasarian">Gender</span>
             <span class="value">{{ user.gender.value | title }}</span>
           </div>
           {% endif %}
           {% if user.location %}
           <div class="detail-row">
-            <span class="label">Location</span>
+            <span class="label" data-en="Location" data-fil="Lokasyon">Location</span>
             <span class="value">{{ user.location }}</span>
           </div>
           {% endif %}
           {% if user.religion %}
           <div class="detail-row">
-            <span class="label">Religion</span>
+            <span class="label" data-en="Religion" data-fil="Relihiyon">Religion</span>
             <span class="value">{{ user.religion }}</span>
           </div>
           {% endif %}
           {% if user.occupation %}
           <div class="detail-row">
-            <span class="label">Occupation</span>
+            <span class="label" data-en="Occupation" data-fil="Trabaho">Occupation</span>
             <span class="value">{{ user.occupation }}</span>
           </div>
           {% endif %}
           <div class="detail-row">
-            <span class="label">Member Since</span>
+            <span class="label" data-en="Member Since" data-fil="Miyembro Simula">Member Since</span>
             <span class="value">{{ user.created_at.strftime('%b %Y') }}</span>
           </div>
         </div>
@@ -268,7 +276,8 @@
   </div>
 
   <a href="/browse" class="back-link">
-    <i class="fa-solid fa-arrow-left" style="font-size:0.75rem;"></i> Back to Browse
+    <i class="fa-solid fa-arrow-left" style="font-size:0.75rem;"></i>
+    <span data-en="Back to Browse" data-fil="Bumalik sa Pag-browse">Back to Browse</span>
   </a>
 </div>
 {% endblock %}

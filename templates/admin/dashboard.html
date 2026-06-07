@@ -6,28 +6,35 @@
 
 <div class="stats-row">
   <div class="stat-card">
-    <div class="stat-icon stat-icon-red"><span style="color:var(--red-main);">👥</span></div>
+    <div class="stat-icon stat-icon-red"><i class="fa-solid fa-users" style="color:var(--crimson);font-size:1.1rem;"></i></div>
     <div class="stat-info">
       <strong>{{ stats.total_users }}</strong>
       <span>Total Members</span>
     </div>
   </div>
   <div class="stat-card">
-    <div class="stat-icon stat-icon-green"><span>✅</span></div>
+    <div class="stat-icon stat-icon-green"><i class="fa-solid fa-circle-check" style="color:#16a34a;font-size:1.1rem;"></i></div>
     <div class="stat-info">
       <strong>{{ stats.active_users }}</strong>
       <span>Active Members</span>
     </div>
   </div>
   <div class="stat-card">
-    <div class="stat-icon stat-icon-blue"><span>👩</span></div>
+    <div class="stat-icon stat-icon-blue"><i class="fa-solid fa-venus" style="color:#c2185b;font-size:1.1rem;"></i></div>
     <div class="stat-info">
       <strong>{{ stats.female_users }}</strong>
       <span>Female Members</span>
     </div>
   </div>
   <div class="stat-card">
-    <div class="stat-icon stat-icon-red"><span>🆕</span></div>
+    <div class="stat-icon stat-icon-blue"><i class="fa-solid fa-mars" style="color:#1565c0;font-size:1.1rem;"></i></div>
+    <div class="stat-info">
+      <strong>{{ stats.male_users }}</strong>
+      <span>Male Members</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon stat-icon-red"><i class="fa-solid fa-user-plus" style="color:var(--crimson);font-size:1.1rem;"></i></div>
     <div class="stat-info">
       <strong>{{ stats.new_today }}</strong>
       <span>New Today</span>

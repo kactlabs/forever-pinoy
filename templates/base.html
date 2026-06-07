@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Pinay Cupid{% endblock %}</title>
+  <title>{% block title %}Forever Pinoy{% endblock %}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <style>
@@ -451,21 +451,21 @@
         <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
       </svg>
       <div>
-        <span class="brand-name">Pinay Cupid</span>
+        <span class="brand-name">Forever Pinoy</span>
         <span class="brand-tag">Find Your Perfect Match</span>
       </div>
     </a>
     <div class="nav-links">
-      <a href="/browse">Browse</a>
+      <a href="/browse" data-en="Browse" data-fil="Mag-browse">Browse</a>
       {% if current_user %}
-        <a href="/profile">My Profile</a>
+        <a href="/profile" data-en="My Profile" data-fil="Ang Aking Profile">My Profile</a>
         {% if current_user.role == 'admin' %}
-          <a href="/admin">Admin</a>
+          <a href="/admin" data-en="Admin" data-fil="Admin">Admin</a>
         {% endif %}
-        <a href="/logout" class="btn-nav btn">Sign Out</a>
+        <a href="/logout" class="btn-nav btn" data-en="Sign Out" data-fil="Mag-logout">Sign Out</a>
       {% else %}
-        <a href="/login">Sign In</a>
-        <a href="/register" class="btn-nav btn">Join Free</a>
+        <a href="/login" data-en="Sign In" data-fil="Mag-sign In">Sign In</a>
+        <a href="/register" class="btn-nav btn" data-en="Join Free" data-fil="Sumali Nang Libre">Join Free</a>
       {% endif %}
       <!-- Theme toggle -->
       <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">
@@ -512,16 +512,16 @@
 
 <footer>
   <p style="margin-bottom:0.5rem;font-family:'Cormorant Garamond',serif;font-size:1rem;color:rgba(255,255,255,0.35);letter-spacing:2px;">
-    PINAY CUPID
+    FOREVER PINOY
   </p>
   <p>
-    &copy; 2025 Pinay Cupid — Where Love Begins
+    &copy; 2025 Forever Pinoy — <span data-en="Where Love Begins" data-fil="Kung Saan Nagsisimula ang Pag-ibig">Where Love Begins</span>
     <span class="footer-divider">|</span>
-    <a href="#">Privacy</a>
+    <a href="#" data-en="Privacy" data-fil="Pribasidad">Privacy</a>
     <span class="footer-divider">|</span>
-    <a href="#">Terms</a>
+    <a href="#" data-en="Terms" data-fil="Mga Tuntunin">Terms</a>
     <span class="footer-divider">|</span>
-    <a href="#">Contact</a>
+    <a href="#" data-en="Contact" data-fil="Makipag-ugnayan">Contact</a>
   </p>
 </footer>
 

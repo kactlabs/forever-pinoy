@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Browse Members — Pinay Cupid{% endblock %}
+{% block title %}Browse Members — Forever Pinoy{% endblock %}
 
 {% block head %}
 <style>
@@ -143,31 +143,40 @@
 {% block content %}
 <div class="browse-page">
   <div class="page-title">
-    <h2>Browse Members</h2>
-    <span>{{ total }} profiles found</span>
+    <h2 data-en="Browse Members" data-fil="Mag-browse ng mga Miyembro">Browse Members</h2>
+    <span>{{ total }} <span data-en="profiles found" data-fil="na profile ang nahanap">profiles found</span></span>
   </div>
 
   <!-- Filters -->
   <form method="get" action="/browse">
     <div class="filter-bar">
       <div class="form-group">
-        <label>Age Min</label>
+        <label data-en="Gender" data-fil="Kasarian">Gender</label>
+        <select class="form-control" name="gender">
+          <option value="" data-en="All" data-fil="Lahat">All</option>
+          <option value="female" {% if filters.gender == 'female' %}selected{% endif %} data-en="Female" data-fil="Babae">Female</option>
+          <option value="male" {% if filters.gender == 'male' %}selected{% endif %} data-en="Male" data-fil="Lalaki">Male</option>
+          <option value="other" {% if filters.gender == 'other' %}selected{% endif %} data-en="Other" data-fil="Iba">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label data-en="Age Min" data-fil="Pinakamababang Edad">Age Min</label>
         <input class="form-control" type="number" name="age_min"
                placeholder="18" min="18" max="99" value="{{ filters.age_min or '' }}" />
       </div>
       <div class="form-group">
-        <label>Age Max</label>
+        <label data-en="Age Max" data-fil="Pinakamataas na Edad">Age Max</label>
         <input class="form-control" type="number" name="age_max"
                placeholder="99" min="18" max="99" value="{{ filters.age_max or '' }}" />
       </div>
       <div class="form-group">
-        <label>Location</label>
+        <label data-en="Location" data-fil="Lokasyon">Location</label>
         <input class="form-control" type="text" name="location"
                placeholder="City or Province" value="{{ filters.location or '' }}" />
       </div>
       <div class="filter-actions">
-        <button type="submit" class="btn btn-primary btn-sm">Search</button>
-        <a href="/browse" class="btn btn-ghost btn-sm">Clear</a>
+        <button type="submit" class="btn btn-primary btn-sm" data-en="Search" data-fil="Maghanap">Search</button>
+        <a href="/browse" class="btn btn-ghost btn-sm" data-en="Clear" data-fil="Likasin">Clear</a>
       </div>
     </div>
   </form>
@@ -235,9 +244,10 @@
         <path stroke-linecap="round" stroke-linejoin="round"
               d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
       </svg>
-      <h3>No profiles found</h3>
-      <p>Try adjusting your filters.</p>
-      <a href="/browse" class="btn btn-outline btn-sm" style="margin-top:1rem;">Show All</a>
+      <h3 data-en="No profiles found" data-fil="Walang profile na nahanap">No profiles found</h3>
+      <p data-en="Try adjusting your filters." data-fil="Subukan ang pag-adjust ng mga filter mo.">Try adjusting your filters.</p>
+      <a href="/browse" class="btn btn-outline btn-sm" style="margin-top:1rem;"
+         data-en="Show All" data-fil="Ipakita Lahat">Show All</a>
     </div>
   </div>
   {% endif %}

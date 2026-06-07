@@ -1,4 +1,4 @@
-# 💕 Pinay Cupid
+# 💕 Forever Pinoy
 
 A Filipino dating web app built with FastAPI + Jinja2. Red & cream love-themed UI.
 

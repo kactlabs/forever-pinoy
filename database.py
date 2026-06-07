@@ -9,6 +9,8 @@ from datetime import datetime
 from bson import ObjectId
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.collection import Collection
+from dotenv import load_dotenv
+load_dotenv()
 
 # ── Connection ────────────────────────────────────────────────────────────────
 MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
@@ -171,6 +173,26 @@ class User:
     @property
     def profile_photo(self) -> str | None:
         return self._doc.get("profile_photo")
+
+    @property
+    def dob(self) -> str | None:
+        return self._doc.get("dob")
+
+    @property
+    def intent(self) -> str | None:
+        return self._doc.get("intent")
+
+    @property
+    def age_pref_min(self) -> int:
+        return self._doc.get("age_pref_min", 18)
+
+    @property
+    def age_pref_max(self) -> int:
+        return self._doc.get("age_pref_max", 45)
+
+    @property
+    def distance(self) -> int:
+        return self._doc.get("distance", 50)
 
     # ── raw doc access ────────────────────────────────────────────────────────
     def raw(self) -> dict:

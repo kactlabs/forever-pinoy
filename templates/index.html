@@ -1,34 +1,44 @@
 {% extends "base.html" %}
-{% block title %}Pinay Cupid — Find Your Filipino Soulmate{% endblock %}
+{% block title %}Forever Pinoy — Find Your Filipino Soulmate{% endblock %}
 
 {% block head %}
 <style>
   /* ── HERO ─────────────────────────────── */
-  /* Hero always has a dark background — never inherits theme --ink
-     because --ink flips to light in dark mode                        */
   .hero {
     background: #1a0f10;
     position: relative;
     overflow: hidden;
-    padding: 6rem 2rem 5rem;
-    text-align: center;
-    color: #f0e8e8;
+    min-height: calc(100vh - 68px);
+    display: flex;
+    align-items: center;
   }
   .hero::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 60% 40%, rgba(139,26,46,0.4) 0%, transparent 65%),
-                radial-gradient(ellipse at 30% 70%, rgba(184,150,78,0.12) 0%, transparent 55%);
+    background: radial-gradient(ellipse at 30% 50%, rgba(139,26,46,0.45) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(184,150,78,0.1) 0%, transparent 50%);
     pointer-events: none;
   }
-  .hero-inner { position: relative; max-width: 720px; margin: 0 auto; }
 
+  .hero-inner {
+    position: relative;
+    width: 100%;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 4rem;
+    align-items: center;
+  }
+
+  /* Left */
   .hero-eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: #e8d5a3;
@@ -40,89 +50,141 @@
   }
   .hero-eyebrow svg { width: 12px; height: 12px; color: #b8964e; }
 
-  .hero h1 {
+  .hero-left h1 {
     font-family: 'Cormorant Garamond', serif;
-    font-size: clamp(2.6rem, 7vw, 4.8rem);
+    font-size: clamp(2.8rem, 6vw, 4.8rem);
     font-weight: 300;
     line-height: 1.1;
-    margin-bottom: 1.2rem;
-    letter-spacing: -0.5px;
+    margin-bottom: 1.4rem;
     color: #f0e8e8;
+    letter-spacing: -0.5px;
   }
-  .hero h1 em { font-style: italic; color: #e8d5a3; font-weight: 400; }
+  .hero-left h1 em { font-style: italic; color: #e8d5a3; font-weight: 400; }
 
-  .hero p {
+  .hero-left p {
     font-size: 0.95rem;
-    color: rgba(240,232,232,0.6);
-    max-width: 480px;
-    margin: 0 auto 2.5rem;
+    color: rgba(240,232,232,0.55);
+    max-width: 460px;
     font-weight: 300;
-    line-height: 1.75;
+    line-height: 1.8;
+    margin-bottom: 2.5rem;
   }
 
-  .hero-cta { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
-
-  .btn-hero-primary {
-    background: var(--crimson);
-    color: #fff;
-    font-size: 0.86rem;
-    padding: 0.75rem 2.2rem;
-    font-weight: 500;
-    border-radius: var(--radius);
-    letter-spacing: 0.3px;
-    border: 1px solid var(--crimson);
-    text-decoration: none;
-    display: inline-flex;
+  .hero-bullets { list-style: none; }
+  .hero-bullets li {
+    display: flex;
     align-items: center;
-    gap: 0.4rem;
-    transition: background 0.2s;
+    gap: 0.7rem;
+    font-size: 0.85rem;
+    color: rgba(240,232,232,0.5);
+    font-weight: 300;
+    padding: 0.35rem 0;
   }
-  .btn-hero-primary:hover { background: var(--crimson-mid); color: #fff; }
+  .hero-bullets li i { color: #b8964e; font-size: 0.7rem; flex-shrink: 0; }
 
-  .btn-hero-ghost {
-    border: 1px solid rgba(240,232,232,0.25);
-    color: rgba(240,232,232,0.75);
-    background: transparent;
-    font-size: 0.86rem;
-    padding: 0.75rem 2.2rem;
-    border-radius: var(--radius);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    transition: background 0.2s, color 0.2s;
-  }
-  .btn-hero-ghost:hover { background: rgba(240,232,232,0.08); color: #f0e8e8; }
-
-  /* Stats bar */
   .hero-stats {
     display: flex;
-    justify-content: center;
-    margin-top: 4rem;
-    border-top: 1px solid rgba(240,232,232,0.09);
+    gap: 2rem;
+    margin-top: 3rem;
     padding-top: 2rem;
+    border-top: 1px solid rgba(240,232,232,0.08);
   }
-  .hero-stat {
-    flex: 1; max-width: 160px;
-    text-align: center;
-    padding: 0 1.5rem;
-    border-right: 1px solid rgba(240,232,232,0.09);
-  }
-  .hero-stat:last-child { border-right: none; }
   .hero-stat strong {
     display: block;
     font-family: 'Cormorant Garamond', serif;
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 600;
     color: #f0e8e8;
     line-height: 1;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.2rem;
   }
   .hero-stat span {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: rgba(240,232,232,0.35);
+    color: rgba(240,232,232,0.3);
   }
+
+  /* Right — signup card */
+  .signup-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .signup-card-header {
+    background: var(--crimson);
+    padding: 1.8rem 2rem 1.5rem;
+    text-align: center;
+  }
+  .signup-card-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+  .signup-card-header p {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.7);
+    font-weight: 300;
+    line-height: 1.5;
+  }
+  .signup-card-body {
+    padding: 1.8rem 2rem 2rem;
+    background: var(--white);
+  }
+  .signup-card-body .form-group { margin-bottom: 1.1rem; }
+  .signup-card-body label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ink-light);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 0.35rem;
+    display: block;
+  }
+  .btn-next {
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--crimson);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-next:hover { background: var(--crimson-mid); }
+
+  .signup-secure {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    color: var(--ink-light);
+    margin-top: 1.1rem;
+  }
+  .signup-login {
+    text-align: center;
+    margin-top: 1.2rem;
+    font-size: 0.82rem;
+    color: var(--ink-light);
+  }
+  .signup-login a {
+    color: var(--crimson);
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-left: 0.4rem;
+  }
+  .signup-login a:hover { text-decoration: underline; }
 
   /* ── FEATURES ─────────────────────────── */
   .features {
@@ -217,36 +279,16 @@
     font-size: 1.05rem; font-weight: 600; color: var(--ink); margin-bottom: 0.4rem;
   }
   .step p { font-size: 0.82rem; color: var(--ink-light); line-height: 1.7; font-weight: 300; }
-  @media(max-width:680px) { .steps-row { grid-template-columns: 1fr 1fr; } }
 
-  /* ── CTA BANNER ──────────────────────── */
-  /* Same approach as hero — always dark, never inherits flipping --ink */
-  .cta-banner {
-    background: #1a0f10;
-    color: #f0e8e8;
-    text-align: center;
-    padding: 5rem 2rem;
-    position: relative;
-    overflow: hidden;
+  @media(max-width:900px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 3rem; }
+    .signup-card { max-width: 420px; margin: 0 auto; }
+    .hero-left h1 { font-size: 2.8rem; }
   }
-  .cta-banner::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse at center, rgba(139,26,46,0.28) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .cta-banner .inner { position: relative; max-width: 520px; margin: 0 auto; }
-  .cta-banner h2 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2.6rem; font-weight: 300;
-    margin-bottom: 0.7rem; line-height: 1.2;
-    color: #f0e8e8;
-  }
-  .cta-banner h2 em { font-style: italic; color: #e8d5a3; }
-  .cta-banner p {
-    color: rgba(240,232,232,0.45);
-    margin-bottom: 2.2rem;
-    font-size: 0.88rem; font-weight: 300; line-height: 1.7;
+  @media(max-width:680px) {
+    .steps-row { grid-template-columns: 1fr 1fr; }
+    .hero-stats { gap: 1.2rem; }
+    .signup-card-body { padding: 1.4rem; }
   }
 </style>
 {% endblock %}
@@ -256,57 +298,100 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-inner">
-    <div class="hero-eyebrow">
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
-      </svg>
-      <span data-en="Filipino Dating" data-fil="Paghahanap ng Pag-ibig">Filipino Dating</span>
-    </div>
 
-    <h1>
-      <span data-en="Find Your" data-fil="Hanapin Ang Iyong">Find Your</span>
-      <em data-en="Filipino" data-fil="Pilipino"> Filipino</em><br/>
-      <span data-en="Soulmate" data-fil="Kaluluwa">Soulmate</span>
-    </h1>
-
-    <p data-en="Thoughtfully connecting Filipino singles from around the world through genuine, meaningful relationships."
-       data-fil="Ikinukonekta ang mga Pilipinong single sa buong mundo para sa tunay at makabuluhang relasyon.">
-      Thoughtfully connecting Filipino singles from around the world through genuine, meaningful relationships.
-    </p>
-
-    <div class="hero-cta">
-      {% if current_user %}
-        <a href="/browse" class="btn-hero-primary"
-           data-en="Browse Profiles" data-fil="I-browse ang mga Profile">Browse Profiles</a>
-      {% else %}
-        <a href="/register" class="btn-hero-primary"
-           data-en="Join Free Today" data-fil="Sumali Nang Libre">Join Free Today</a>
-        <a href="/login" class="btn-hero-ghost"
-           data-en="Sign In" data-fil="Mag-sign In">Sign In</a>
-      {% endif %}
-    </div>
-
-    <div class="hero-stats">
-      <div class="hero-stat">
-        <strong>10K+</strong>
-        <span data-en="Members" data-fil="Mga Miyembro">Members</span>
+    <!-- Left — headline -->
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
+        </svg>
+      <span data-en="Filipino Dating" data-fil="Pakikipag-ugnayan ng Pilipino">Filipino Dating</span>
       </div>
-      <div class="hero-stat">
-        <strong>500+</strong>
-        <span data-en="Matches Daily" data-fil="Tugma Araw-araw">Matches Daily</span>
-      </div>
-      <div class="hero-stat">
-        <strong>98%</strong>
-        <span data-en="Real Profiles" data-fil="Tunay na Profile">Real Profiles</span>
+
+      <h1 id="stepTitle">
+        <span data-en="Find Your" data-fil="Hanapin ang Iyong">Find Your</span><br/>
+        <em data-en="Filipino" data-fil="Pilipinong">Filipino</em><br/>
+        <span data-en="Soulmate" data-fil="Kaluluwa">Soulmate</span>
+      </h1>
+
+      <p data-en="Thoughtfully connecting Filipino singles from around the world through genuine, meaningful relationships."
+         data-fil="Pinag-uugnay ang mga Pilipinong single sa buong mundo para sa tunay at makabuluhang relasyon.">
+        Thoughtfully connecting Filipino singles from around the world through genuine, meaningful relationships.
+      </p>
+
+      <ul class="hero-bullets">
+        <li><i class="fa-solid fa-check"></i> <span data-en="Free to join, always" data-fil="Libre na sumali, palagi">Free to join, always</span></li>
+        <li><i class="fa-solid fa-check"></i> <span data-en="Thousands of genuine profiles" data-fil="Libu-libong tunay na profile">Thousands of genuine profiles</span></li>
+        <li><i class="fa-solid fa-check"></i> <span data-en="Safe, secure &amp; verified" data-fil="Ligtas, secure at napatunayan">Safe, secure &amp; verified</span></li>
+      </ul>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <strong>10K+</strong>
+          <span data-en="Members" data-fil="Mga Miyembro">Members</span>
+        </div>
+        <div class="hero-stat">
+          <strong>500+</strong>
+          <span data-en="Matches Daily" data-fil="Mga Tugma Araw-araw">Matches Daily</span>
+        </div>
+        <div class="hero-stat">
+          <strong>98%</strong>
+          <span data-en="Real Profiles" data-fil="Tunay na Profile">Real Profiles</span>
+        </div>
       </div>
     </div>
+
+    <!-- Right — signup card -->
+    <div class="signup-card">
+      <div class="signup-card-header">
+        <h2 data-en="Create Free Account Now" data-fil="Lumikha ng Libreng Account Ngayon">Create Free Account Now</h2>
+        <p data-en="Click Next to create your account and browse profiles online"
+           data-fil="I-click ang Susunod upang lumikha ng account at mag-browse ng mga profile">
+          Click Next to create your account and browse profiles online
+        </p>
+      </div>
+      <div class="signup-card-body">
+        {% if current_user %}
+          <p style="text-align:center;font-size:0.9rem;color:var(--ink-mid);padding:1rem 0;">
+            <span data-en="Welcome back," data-fil="Mabuti't bumalik,">Welcome back,</span> <strong>{{ current_user.username }}</strong>!
+          </p>
+          <a href="/browse" class="btn-next" style="display:block;text-align:center;text-decoration:none;line-height:2.4;"
+             data-en="Browse Profiles" data-fil="Tingnan ang mga Profile">
+            Browse Profiles
+          </a>
+        {% else %}
+          <form method="get" action="/register">
+            <div class="form-group">
+              <label data-en="I am" data-fil="Ako ay">I am</label>
+              <select class="form-control" name="intent">
+                <option value="man-looking-for-woman" data-en="Man looking for a Woman" data-fil="Lalaking naghahanap ng Babae">Man looking for a Woman</option>
+                <option value="woman-looking-for-man" data-en="Woman looking for a Man" data-fil="Babae na naghahanap ng Lalaki">Woman looking for a Man</option>
+                <option value="others" data-en="Others" data-fil="Iba">Others</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-next" data-en="NEXT" data-fil="SUSUNOD">NEXT</button>
+          </form>
+
+          <div class="signup-secure">
+            <i class="fa-solid fa-lock"></i>
+            <span data-en="Secure &amp; private registration" data-fil="Secure at pribadong pagpaparehistro">Secure &amp; private registration</span>
+          </div>
+
+          <div class="signup-login">
+            <span data-en="Already a Member?" data-fil="Miyembro na ba?">Already a Member?</span>
+            <a href="/login" data-en="LOGIN" data-fil="MAGPASOK">LOGIN</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
   </div>
 </section>
 
 <!-- FEATURES -->
 <section class="features">
   <div class="section-header">
-    <h2 data-en="Why Pinay Cupid" data-fil="Bakit Pinay Cupid">Why Pinay Cupid</h2>
+    <h2 data-en="Why Forever Pinoy" data-fil="Bakit Forever Pinoy">Why Forever Pinoy</h2>
     <div class="divider-ornament">
       <svg class="heart-ornament" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
@@ -324,7 +409,7 @@
       </svg>
       <h3 data-en="Safe &amp; Verified" data-fil="Ligtas at Napatunayan">Safe &amp; Verified</h3>
       <p data-en="All profiles are reviewed. We take your safety and privacy seriously."
-         data-fil="Lahat ng profile ay sinusuri. Sineseryoso namin ang iyong kaligtasan at privacy.">
+         data-fil="Lahat ng mga profile ay sinusuri. Sineseryoso namin ang iyong kaligtasan at privacy.">
         All profiles are reviewed. We take your safety and privacy seriously.
       </p>
     </div>
@@ -334,7 +419,7 @@
       </svg>
       <h3 data-en="Smart Matching" data-fil="Matalinong Pagtutugma">Smart Matching</h3>
       <p data-en="Browse by location, age, interests, and more to find your ideal match."
-         data-fil="Mag-browse ayon sa lokasyon, edad, interes, at iba pa para mahanap ang iyong tugma.">
+         data-fil="Mag-browse ayon sa lokasyon, edad, at interes para mahanap ang iyong perpektong tugma.">
         Browse by location, age, interests, and more to find your ideal match.
       </p>
     </div>
@@ -344,7 +429,7 @@
       </svg>
       <h3 data-en="Connect Easily" data-fil="Madaling Kumonekta">Connect Easily</h3>
       <p data-en="Send winks and messages to start meaningful conversations."
-         data-fil="Magpadala ng winks at mensahe para magsimula ng makabuluhang pakikipag-usap.">
+         data-fil="Magpadala ng mga wink at mensahe para magsimula ng makabuluhang pakikipag-usap.">
         Send winks and messages to start meaningful conversations.
       </p>
     </div>
@@ -378,7 +463,7 @@
 
   <div class="profiles-grid">
     {% for member in recent_members %}
-    <a href="/profile/{{ member.id }}" style="text-decoration:none;color:inherit;">
+    <a href="{% if current_user %}/profile/{{ member.id }}{% else %}/register{% endif %}" style="text-decoration:none;color:inherit;">
       <div class="card profile-card">
         <div class="photo-wrap">
           {% if member.profile_photo %}
@@ -392,7 +477,7 @@
         </div>
         <div class="card-info">
           <h4>{{ member.full_name or member.username }}</h4>
-          <p>{{ member.age or '?' }} <span data-en="yrs" data-fil="taon">yrs</span> &middot; {{ member.location or 'Philippines' }}</p>
+      <p>{{ member.age or '?' }} <span data-en="yrs" data-fil="taon">yrs</span> &middot; {{ member.location or 'Philippines' }}</p>
         </div>
       </div>
     </a>
@@ -400,10 +485,8 @@
     <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--ink-light);">
       <i class="fa-regular fa-heart" style="font-size:2rem;opacity:0.3;margin-bottom:0.8rem;display:block;"></i>
       <p style="font-size:0.88rem;">
-        <span data-en="Be the first to join —" data-fil="Maging una —">Be the first to join —</span>
-        <a href="/register" style="color:var(--crimson);">
-          <span data-en="Register now" data-fil="Mag-register na">Register now</span>
-        </a>
+        <span data-en="Be the first to join —" data-fil="Maging una na sumali —">Be the first to join —</span>
+        <a href="/register" style="color:var(--crimson);" data-en="Register now" data-fil="Mag-register na">Register now</a>
       </p>
     </div>
     {% endfor %}
@@ -411,8 +494,8 @@
 
   {% if recent_members %}
   <div class="text-center mt-3">
-    <a href="/browse" class="btn btn-outline"
-       data-en="View All Members" data-fil="Tingnan Lahat ng Miyembro">View All Members</a>
+    <a href="{% if current_user %}/browse{% else %}/register{% endif %}" class="btn btn-outline"
+       data-en="View All Members" data-fil="Tingnan ang Lahat ng Miyembro">View All Members</a>
   </div>
   {% endif %}
 </section>
@@ -430,7 +513,7 @@
   <div class="steps-row">
     <div class="step">
       <div class="step-num">1</div>
-      <h4 data-en="Create Profile" data-fil="Gumawa ng Profile">Create Profile</h4>
+      <h4 data-en="Create Profile" data-fil="Lumikha ng Profile">Create Profile</h4>
       <p data-en="Sign up for free and build your profile in minutes."
          data-fil="Mag-sign up nang libre at gumawa ng profile sa loob ng ilang minuto.">
         Sign up for free and build your profile in minutes.
@@ -462,25 +545,5 @@
     </div>
   </div>
 </section>
-
-<!-- CTA BANNER -->
-{% if not current_user %}
-<section class="cta-banner">
-  <div class="inner">
-    <h2>
-      <span data-en="Ready to Find" data-fil="Handa Ka Na Bang Hanapin">Ready to Find</span><br/>
-      <em data-en="Your Love?" data-fil="Ang Iyong Pag-ibig?">Your Love?</em>
-    </h2>
-    <p data-en="Join thousands of happy couples who found each other on Pinay Cupid. Free to join, always."
-       data-fil="Sumali sa libu-libong masayang mag-asawa na nakahanap ng isa't isa sa Pinay Cupid. Libre palagi.">
-      Join thousands of happy couples who found each other on Pinay Cupid. Free to join, always.
-    </p>
-    <a href="/register" class="btn-hero-primary"
-       data-en="Start Your Journey — It's Free" data-fil="Simulan Ang Iyong Paglalakbay — Libre">
-      Start Your Journey &mdash; It&rsquo;s Free
-    </a>
-  </div>
-</section>
-{% endif %}
 
 {% endblock %}

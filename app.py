@@ -5,6 +5,9 @@ from pathlib import Path
 from datetime import datetime
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import uvicorn
 from bson import ObjectId
 from fastapi import FastAPI, Request, Form, Depends, UploadFile, File, HTTPException
@@ -73,7 +76,7 @@ async def lifespan(app: FastAPI):
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
-app = FastAPI(title="Pinay Cupid", lifespan=lifespan)
+app = FastAPI(title="Forever Pinoy", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
@@ -143,9 +146,18 @@ def home(request: Request, db: Database = Depends(get_db)):
 
 # ── REGISTER ──────────────────────────────────────────────────────────────────
 @app.get("/register", response_class=HTMLResponse)
-def register_get(request: Request, db: Database = Depends(get_db)):
+def register_get(request: Request, db: Database = Depends(get_db), intent: str = ""):
     _seed_admin(db)
-    return render(request, "register.html", {"form": {}}, db)
+    intent_map = {
+        "man-looking-for-woman":  {"gender": "male",   "looking_for": "Woman"},
+        "woman-looking-for-man":  {"gender": "female", "looking_for": "Man"},
+        "others":                 {"gender": "other",  "looking_for": ""},
+    }
+    prefill  = intent_map.get(intent, {})
+    # max DOB = today minus 18 years
+    from datetime import date
+    max_dob  = date(datetime.utcnow().year - 18, datetime.utcnow().month, datetime.utcnow().day).isoformat()
+    return render(request, "register.html", {"form": prefill, "intent": intent, "max_dob": max_dob}, db)
 
 
 @app.post("/register", response_class=HTMLResponse)
@@ -157,35 +169,58 @@ def register_post(
     password:         str = Form(...),
     confirm_password: str = Form(...),
     full_name:        str = Form(""),
-    age:              str = Form(""),
+    gender:           str = Form(...),
+    intent:           str = Form(""),
+    dob:              str = Form(""),
+    age_pref_min:     str = Form("18"),
+    age_pref_max:     str = Form("45"),
+    distance:         str = Form("50"),
     location:         str = Form(""),
+    bio:              str = Form(""),
 ):
     _seed_admin(db)
-    form = {"username": username, "email": email,
-            "full_name": full_name, "age": age,
-            "location": location}
+    from datetime import date as _date
+
+    form = {"username": username, "email": email, "full_name": full_name,
+            "gender": gender, "dob": dob, "location": location, "bio": bio}
 
     if password != confirm_password:
-        return flash_error(request, "register.html", {"form": form}, db, "Passwords do not match.")
+        return flash_error(request, "register.html", {"form": form, "max_dob": ""}, db, "Passwords do not match.")
     if len(password) < 6:
-        return flash_error(request, "register.html", {"form": form}, db, "Password must be at least 6 characters.")
+        return flash_error(request, "register.html", {"form": form, "max_dob": ""}, db, "Password must be at least 6 characters.")
 
-    users = get_users(db)
+    if gender not in ("female", "male", "other"):
+        return flash_error(request, "register.html", {"form": form, "max_dob": ""}, db, "Please select a valid option.")
 
-    if users.find_one({"username": username}):
-        return flash_error(request, "register.html", {"form": form}, db, "Username already taken.")
-    if users.find_one({"email": email}):
-        return flash_error(request, "register.html", {"form": form}, db, "Email already registered. Try logging in.")
-
+    # Compute age from DOB
     age_int = None
-    if age.strip():
+    dob_parsed = None
+    if dob.strip():
         try:
-            age_int = int(age.strip())
+            dob_parsed = _date.fromisoformat(dob.strip())
+            today      = _date.today()
+            age_int    = today.year - dob_parsed.year - (
+                (today.month, today.day) < (dob_parsed.month, dob_parsed.day)
+            )
             if age_int < 18:
-                return flash_error(request, "register.html", {"form": form}, db,
+                return flash_error(request, "register.html", {"form": form, "max_dob": ""}, db,
                                    "You must be 18 or older to register.")
         except ValueError:
-            age_int = None
+            pass
+
+    # Numeric prefs
+    try: age_pref_min_int = int(age_pref_min)
+    except ValueError: age_pref_min_int = 18
+    try: age_pref_max_int = int(age_pref_max)
+    except ValueError: age_pref_max_int = 45
+    try: distance_int = int(distance)
+    except ValueError: distance_int = 50
+
+    users = get_users(db)
+    if users.find_one({"username": username}):
+        return flash_error(request, "register.html", {"form": form, "max_dob": ""}, db, "Username already taken.")
+    if users.find_one({"email": email}):
+        return flash_error(request, "register.html", {"form": form, "max_dob": ""}, db, "Email already registered. Try logging in.")
 
     try:
         doc = {
@@ -198,9 +233,14 @@ def register_post(
             "created_at":      datetime.utcnow(),
             "full_name":       full_name or None,
             "age":             age_int,
-            "gender":          "female",   # platform is women-only
+            "dob":             dob or None,
+            "gender":          gender,
+            "intent":          intent or None,
+            "age_pref_min":    age_pref_min_int,
+            "age_pref_max":    age_pref_max_int,
+            "distance":        distance_int,
             "location":        location or None,
-            "bio":             None,
+            "bio":             bio or None,
             "looking_for":     None,
             "religion":        None,
             "occupation":      None,
@@ -209,14 +249,15 @@ def register_post(
         }
         result = users.insert_one(doc)
         user_id = str(result.inserted_id)
-    except Exception as exc:
+    except Exception:
         import traceback; traceback.print_exc()
-        return flash_error(request, "register.html", {"form": form}, db,
+        return flash_error(request, "register.html", {"form": form, "max_dob": ""}, db,
                            "Registration failed due to a server error. Please try again.", 500)
 
     token = create_access_token({"sub": user_id})
-    resp  = _redirect_with_flash(request, "/profile/edit",
-                                 f"Welcome to Pinay Cupid, {username}! Complete your profile.", "success")
+    # Men go to browse (they answered all questions); women/others go to browse too
+    resp = _redirect_with_flash(request, "/browse",
+                                f"Welcome to Forever Pinoy, {username}! Start browsing.", "success")
     resp.set_cookie("access_token", token, httponly=True, max_age=86400 * 7, samesite="lax")
     return resp
 
@@ -279,11 +320,27 @@ def browse(
     age_min:  str = "",
     age_max:  str = "",
     location: str = "",
+    gender:   str = "",
     page:     int = 1,
 ):
     PAGE_SIZE = 20
-    # Platform is women-only — always filter to female
-    filt: dict = {"is_active": True, "role": "user", "gender": "female"}
+    filt: dict = {"is_active": True, "role": "user"}
+
+    cu = get_current_user(request, db)
+
+    # If logged in, auto-filter to the opposite gender unless the user explicitly filters
+    if not gender and cu:
+        opposite = {"male": "female", "female": "male"}
+        cu_gender = cu.gender.value if cu.gender else None
+        if cu_gender in opposite:
+            filt["gender"] = opposite[cu_gender]
+    elif gender and gender in ("female", "male", "other"):
+        filt["gender"] = gender
+
+    # Exclude the current user's own profile
+    if cu:
+        from bson import ObjectId as _OID
+        filt["_id"] = {"$ne": _OID(cu.id)}
 
     age_q: dict = {}
     if age_min:
@@ -309,12 +366,13 @@ def browse(
     if age_min:  params.append(f"age_min={age_min}")
     if age_max:  params.append(f"age_max={age_max}")
     if location: params.append(f"location={location}")
+    if gender:   params.append(f"gender={gender}")
 
     return render(request, "browse.html", {
         "members": members, "total": total,
         "page": page, "total_pages": total_pages,
         "query_string": "&".join(params),
-        "filters": {"q": "", "gender": "", "age_min": age_min,
+        "filters": {"q": "", "gender": gender, "age_min": age_min,
                     "age_max": age_max, "location": location},
     }, db)
 
@@ -342,6 +400,7 @@ def edit_profile_post(
     db:          Database = Depends(get_db),
     full_name:   str = Form(""),
     age:         str = Form(""),
+    gender:      str = Form(""),
     location:    str = Form(""),
     religion:    str = Form(""),
     occupation:  str = Form(""),
@@ -365,8 +424,11 @@ def edit_profile_post(
         "bio":         bio         or None,
         "looking_for": looking_for or None,
         "age":         age_int,
-        "gender":      "female",   # always female — women-only platform
     }
+    
+    if gender and gender in ("female", "male", "other"):
+        updates["gender"] = gender
+    
     get_users(db).update_one({"_id": ObjectId(cu.id)}, {"$set": updates})
     return _redirect_with_flash(request, f"/profile/{cu.id}",
                                 "Profile updated successfully!", "success")
@@ -472,6 +534,7 @@ def admin_dashboard(request: Request, db: Database = Depends(get_db)):
         "total_users":  users.count_documents({"role": "user"}),
         "active_users": users.count_documents({"role": "user", "is_active": True}),
         "female_users": users.count_documents({"role": "user", "gender": "female"}),
+        "male_users":   users.count_documents({"role": "user", "gender": "male"}),
         "new_today":    users.count_documents({"role": "user", "created_at": {"$gte": today}}),
     }
     recent_docs  = list(users.find().sort("created_at", -1).limit(10))
@@ -606,4 +669,4 @@ def admin_promote(user_id: str, request: Request, db: Database = Depends(get_db)
 
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app:app", host="localhost", port=8000, reload=True)

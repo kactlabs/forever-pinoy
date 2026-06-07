@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Sign In — Pinay Cupid{% endblock %}
+{% block title %}Sign In — Forever Pinoy{% endblock %}
 
 {% block head %}
 <style>
@@ -86,15 +86,17 @@
       <svg class="auth-logo" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
       </svg>
-      <h1>Welcome Back</h1>
-      <p>Sign in to continue your journey</p>
+      <h1 data-en="Welcome Back" data-fil="Mabuti't Bumalik">Welcome Back</h1>
+      <p data-en="Sign in to continue your journey" data-fil="Mag-sign in upang ipagpatuloy ang iyong paglalakbay">Sign in to continue your journey</p>
     </div>
     <div class="auth-body">
       <div class="role-tabs">
-        <button class="role-tab {% if not is_admin %}active{% endif %}" onclick="setRole('user')">
+        <button class="role-tab {% if not is_admin %}active{% endif %}" onclick="setRole('user')"
+                data-en="Member Login" data-fil="Pagpasok ng Miyembro">
           Member Login
         </button>
-        <button class="role-tab {% if is_admin %}active{% endif %}" onclick="setRole('admin')">
+        <button class="role-tab {% if is_admin %}active{% endif %}" onclick="setRole('admin')"
+                data-en="Admin Login" data-fil="Pagpasok ng Admin">
           Admin Login
         </button>
       </div>
@@ -103,25 +105,28 @@
         <input type="hidden" name="role" id="roleInput" value="{{ 'admin' if is_admin else 'user' }}" />
 
         <div class="form-group">
-          <label>Username or Email</label>
+          <label data-en="Username or Email" data-fil="Username o Email">Username or Email</label>
           <input class="form-control" type="text" name="username"
                  placeholder="Enter username or email"
                  required value="{{ form.username or '' }}" />
         </div>
 
         <div class="form-group">
-          <label>Password</label>
+          <label data-en="Password" data-fil="Password">Password</label>
           <input class="form-control" type="password" name="password"
                  placeholder="Your password" required />
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block" style="margin-top:0.6rem;">
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:0.6rem;"
+                data-en="Sign In" data-fil="Mag-sign In">
           Sign In
         </button>
       </form>
 
       <p class="text-center mt-2 text-muted">
-        New here? <a href="/register" style="color:var(--crimson);font-weight:500;">Join free</a>
+        <span data-en="New here?" data-fil="Baguhan ka ba dito?">New here?</span>
+        <a href="/register" style="color:var(--crimson);font-weight:500;"
+           data-en="Join free" data-fil="Sumali nang libre">Join free</a>
       </p>
     </div>
   </div>

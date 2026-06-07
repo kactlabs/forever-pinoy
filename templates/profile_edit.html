@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Edit Profile — Pinay Cupid{% endblock %}
+{% block title %}Edit Profile — Forever Pinoy{% endblock %}
 
 {% block head %}
 <style>
@@ -85,8 +85,11 @@
 {% block content %}
 <div class="edit-page">
   <div class="page-title">
-    <h2>Edit Profile</h2>
-    <p>Keep your profile updated to attract the right matches.</p>
+    <h2 data-en="Edit Profile" data-fil="I-edit ang Profile">Edit Profile</h2>
+    <p data-en="Keep your profile updated to attract the right matches."
+       data-fil="Panatilihing updated ang iyong profile para maakit ang tamang tugma.">
+      Keep your profile updated to attract the right matches.
+    </p>
   </div>
 
   <!-- Photo upload -->
@@ -120,13 +123,13 @@
       <form method="post" action="/profile/edit">
         <div class="two-col">
           <div class="form-group">
-            <label>Full Name</label>
+            <label data-en="Full Name" data-fil="Buong Pangalan">Full Name</label>
             <input class="form-control" type="text" name="full_name"
                    value="{{ current_user.full_name or '' }}"
                    placeholder="Your full name" />
           </div>
           <div class="form-group">
-            <label>Username</label>
+            <label data-en="Username" data-fil="Username">Username</label>
             <input class="form-control" type="text"
                    value="{{ current_user.username }}"
                    disabled style="opacity:0.5;cursor:not-allowed;" />
@@ -135,28 +138,31 @@
 
         <div class="two-col">
           <div class="form-group">
-            <label>Age</label>
+            <label data-en="Age" data-fil="Edad">Age</label>
             <input class="form-control" type="number" name="age"
                    value="{{ current_user.age or '' }}"
                    min="18" max="100" placeholder="Your age" />
           </div>
           <div class="form-group">
-            <label>Location</label>
-            <input class="form-control" type="text" name="location"
-                   value="{{ current_user.location or '' }}"
-                   placeholder="City, Province" />
+            <label data-en="Gender" data-fil="Kasarian">Gender</label>
+            <select class="form-control" name="gender">
+              <option value="" data-en="Select gender" data-fil="Pumili ng kasarian">Select gender</option>
+              <option value="female" {% if current_user.gender and current_user.gender.value == 'female' %}selected{% endif %} data-en="Female" data-fil="Babae">Female</option>
+              <option value="male" {% if current_user.gender and current_user.gender.value == 'male' %}selected{% endif %} data-en="Male" data-fil="Lalaki">Male</option>
+              <option value="other" {% if current_user.gender and current_user.gender.value == 'other' %}selected{% endif %} data-en="Other" data-fil="Iba">Other</option>
+            </select>
           </div>
         </div>
 
         <div class="two-col">
           <div class="form-group">
-            <label>Location</label>
+            <label data-en="Location" data-fil="Lokasyon">Location</label>
             <input class="form-control" type="text" name="location"
                    value="{{ current_user.location or '' }}"
                    placeholder="City, Province" />
           </div>
           <div class="form-group">
-            <label>Religion</label>
+            <label data-en="Religion" data-fil="Relihiyon">Religion</label>
             <input class="form-control" type="text" name="religion"
                    value="{{ current_user.religion or '' }}"
                    placeholder="e.g. Catholic, Baptist..." />
@@ -164,27 +170,29 @@
         </div>
 
         <div class="form-group">
-          <label>Occupation</label>
+          <label data-en="Occupation" data-fil="Trabaho">Occupation</label>
           <input class="form-control" type="text" name="occupation"
                  value="{{ current_user.occupation or '' }}"
                  placeholder="Your job or profession" />
         </div>
 
         <div class="form-group">
-          <label>About Me</label>
+          <label data-en="About Me" data-fil="Tungkol sa Akin">About Me</label>
           <textarea class="form-control" name="bio" rows="4"
                     placeholder="Tell others about yourself...">{{ current_user.bio or '' }}</textarea>
         </div>
 
         <div class="form-group">
-          <label>Looking For</label>
+          <label data-en="Looking For" data-fil="Naghahanap Ako ng">Looking For</label>
           <textarea class="form-control" name="looking_for" rows="3"
                     placeholder="What kind of relationship are you looking for?">{{ current_user.looking_for or '' }}</textarea>
         </div>
 
         <div class="form-footer">
-          <button type="submit" class="btn btn-primary">Save Changes</button>
-          <a href="/profile" class="btn btn-ghost">Cancel</a>
+          <button type="submit" class="btn btn-primary"
+                  data-en="Save Changes" data-fil="I-save ang mga Pagbabago">Save Changes</button>
+          <a href="/profile" class="btn btn-ghost"
+             data-en="Cancel" data-fil="Kanselahin">Cancel</a>
         </div>
       </form>
     </div>

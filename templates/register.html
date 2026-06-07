@@ -1,154 +1,610 @@
 {% extends "base.html" %}
-{% block title %}Join Pinay Cupid — Register{% endblock %}
+{% block title %}Join Forever Pinoy — Register{% endblock %}
 
 {% block head %}
 <style>
-  .auth-page {
-    min-height: calc(100vh - 120px);
+  .wizard-page {
+    min-height: calc(100vh - 68px);
+    background: #1a0f10;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 2.5rem 1.5rem;
-    background: var(--cream);
-  }
-  .auth-card {
-    background: var(--white);
-    border: 1px solid var(--cream-border);
-    border-radius: var(--radius-lg);
-    width: 100%;
-    max-width: 560px;
-    box-shadow: var(--shadow-lg);
+    position: relative;
     overflow: hidden;
   }
-  .auth-header {
-    padding: 2.5rem 2.5rem 1.8rem;
+  .wizard-page::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 30% 50%, rgba(139,26,46,0.4) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .wizard-card {
+    position: relative;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .wizard-progress { height: 3px; background: var(--cream-border); }
+  .wizard-progress-fill { height: 100%; background: var(--crimson); transition: width 0.35s ease; }
+  .wizard-header {
+    padding: 2rem 2.5rem 1.5rem;
     border-bottom: 1px solid var(--cream-border);
     text-align: center;
   }
-  .auth-header .auth-logo {
-    width: 38px; height: 38px;
-    color: var(--crimson);
-    margin: 0 auto 1rem;
-    display: block;
-  }
-  .auth-header h1 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.9rem;
-    font-weight: 600;
-    color: var(--ink);
-    margin-bottom: 0.3rem;
-  }
-  .auth-header p {
-    font-size: 0.82rem;
-    color: var(--ink-light);
-    font-weight: 300;
-  }
-  .auth-body { padding: 2rem 2.5rem 2.5rem; }
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-
-  .section-label {
-    font-size: 0.68rem;
-    letter-spacing: 2px;
+  .wizard-step-label {
+    font-size: 0.65rem;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
-    color: var(--ink-light);
+    color: var(--crimson);
     font-weight: 500;
-    margin: 1.4rem 0 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--cream-border);
+    margin-bottom: 0.5rem;
   }
-  .notice {
-    background: var(--cream);
-    border: 1px solid var(--cream-border);
-    border-radius: var(--radius);
-    padding: 0.75rem 1rem;
-    font-size: 0.8rem;
-    color: var(--ink-light);
-    margin-bottom: 1.2rem;
-    line-height: 1.6;
+  .wizard-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem; font-weight: 600; color: var(--ink); margin-bottom: 0.25rem;
+  }
+  .wizard-header p { font-size: 0.82rem; color: var(--ink-light); font-weight: 300; line-height: 1.5; }
+  .wizard-body { padding: 2rem 2.5rem 2.5rem; }
+  .step-panel { display: none; }
+  .step-panel.active { display: block; }
+  .range-display {
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem; font-weight: 600; color: var(--crimson);
+    margin-bottom: 0.3rem; line-height: 1;
+  }
+  .range-display span { font-size: 0.8rem; color: var(--ink-light); font-weight: 300; }
+  /* ── single range (distance) ── */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%; height: 4px;
+    background: var(--cream-border); border-radius: 2px; outline: none; margin: 0.5rem 0 0.2rem;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--crimson); cursor: pointer; border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .slider-labels {
+    display: flex; justify-content: space-between;
+    font-size: 0.7rem; color: var(--ink-light); margin-bottom: 1rem;
   }
 
+  /* ── dual-handle range slider ── */
+  .dual-range-wrap {
+    position: relative;
+    height: 36px;
+    margin: 0.6rem 0 0.2rem;
+  }
+  .dual-range-track {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    left: 0; right: 0;
+    height: 4px;
+    background: var(--cream-border);
+    border-radius: 2px;
+  }
+  .dual-range-fill {
+    position: absolute;
+    height: 100%;
+    background: var(--crimson);
+    border-radius: 2px;
+  }
+  .dual-range-wrap input[type="range"] {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    left: 0; width: 100%;
+    margin: 0;
+    background: transparent;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .dual-range-wrap input[type="range"]::-webkit-slider-thumb {
+    pointer-events: all;
+    width: 20px; height: 20px;
+    background: var(--crimson);
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    box-shadow: 0 1px 6px rgba(139,26,46,0.35);
+  }
+  .dual-range-wrap input[type="range"]::-moz-range-thumb {
+    pointer-events: all;
+    width: 20px; height: 20px;
+    background: var(--crimson);
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(139,26,46,0.35);
+  }
+  .dual-range-edge-labels {
+    display: flex; justify-content: space-between;
+    font-size: 0.7rem; color: var(--ink-light); margin-top: 0.3rem;
+  }
+  .distance-options {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1.2rem;
+  }
+  .distance-btn {
+    padding: 0.7rem 0.5rem;
+    border: 1.5px solid var(--cream-border); border-radius: var(--radius);
+    background: var(--white); font-size: 0.82rem; color: var(--ink-mid);
+    cursor: pointer; text-align: center; transition: all 0.18s;
+    font-family: 'Inter', sans-serif;
+  }
+  .distance-btn:hover { border-color: var(--crimson); color: var(--crimson); }
+  .distance-btn.selected { border-color: var(--crimson); background: var(--crimson-soft); color: var(--crimson); font-weight: 500; }
+  .distance-btn strong { display: block; font-size: 1rem; font-weight: 600; }
+  .wizard-nav { display: flex; gap: 0.8rem; margin-top: 1.5rem; }
+  .btn-wizard-back {
+    flex: 0 0 auto; padding: 0.75rem 1.2rem;
+    border: 1px solid var(--cream-border); background: var(--white);
+    border-radius: var(--radius); color: var(--ink-mid); font-size: 0.85rem;
+    cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.18s;
+  }
+  .btn-wizard-back:hover { background: var(--cream-mid); }
+  .btn-wizard-next {
+    flex: 1; padding: 0.82rem; background: var(--crimson); color: #fff;
+    border: none; border-radius: var(--radius);
+    font-size: 0.9rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.18s;
+  }
+  .btn-wizard-next:hover { background: var(--crimson-mid); }
+  .btn-wizard-next:disabled { opacity: 0.45; cursor: not-allowed; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .notice {
+    background: var(--cream); border: 1px solid var(--cream-border);
+    border-radius: var(--radius); padding: 0.75rem 1rem;
+    font-size: 0.79rem; color: var(--ink-light); margin-bottom: 1.2rem; line-height: 1.6;
+  }
+  .intent-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: var(--crimson-soft); border: 1px solid rgba(139,26,46,0.2);
+    border-radius: var(--radius); padding: 0.4rem 0.9rem;
+    font-size: 0.8rem; color: var(--crimson); font-weight: 500;
+    margin-bottom: 1.4rem;
+  }
+  .signin-link { text-align: center; margin-top: 1.2rem; font-size: 0.82rem; color: var(--ink-light); }
+  .signin-link a { color: var(--crimson); font-weight: 500; text-decoration: none; }
+  .step-dots { display: flex; justify-content: center; gap: 0.4rem; padding: 1rem 0 0; }
+  .step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cream-border); transition: all 0.2s; }
+  .step-dot.done { background: var(--crimson); opacity: 0.4; }
+  .step-dot.active { background: var(--crimson); opacity: 1; width: 18px; border-radius: 4px; }
   @media(max-width:500px) {
     .two-col { grid-template-columns: 1fr; }
-    .auth-body { padding: 1.5rem; }
+    .wizard-body { padding: 1.5rem; }
+    .wizard-header { padding: 1.5rem 1.5rem 1.2rem; }
+    .distance-options { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="auth-page">
-  <div class="auth-card">
-    <div class="auth-header">
-      <svg class="auth-logo" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 21C12 21 3 13.5 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-9 13-9 13z"/>
-      </svg>
-      <h1>Create Account</h1>
-      <p>Join free and start your love story</p>
+<div class="wizard-page">
+  <div class="wizard-card">
+
+    <div class="wizard-progress">
+      <div class="wizard-progress-fill" id="progressFill" style="width:25%"></div>
     </div>
 
-    <div class="auth-body">
-      <form method="post" action="/register">
+    <div class="wizard-header">
+      <div class="wizard-step-label" id="stepLabel">Step 1 of 4</div>
+      <h2 id="stepTitle">Your Preferences</h2>
+      <p id="stepDesc">Set the age range you're looking for and your date of birth</p>
+    </div>
 
-        <p class="section-label">Account</p>
-        <div class="two-col">
+    <div class="wizard-body">
+      <form method="post" action="/register" id="wizardForm">
+
+        <!-- Intent + gender set from URL — never shown as a step -->
+        <input type="hidden" name="intent"       id="hIntent" value="{{ intent or '' }}" />
+        <input type="hidden" name="gender"       id="hGender" value="{{ form.gender or '' }}" />
+        <input type="hidden" name="age_pref_min" id="hAgePrefMin" value="18" />
+        <input type="hidden" name="age_pref_max" id="hAgePrefMax" value="45" />
+        <input type="hidden" name="dob"          id="hDob" />
+        <input type="hidden" name="distance"     id="hDistance" value="50" />
+
+        <!-- STEP 1: Age preference + DOB -->
+        <div class="step-panel active" id="step1">
+          <div class="intent-badge" id="intentBadge" style="display:none;">
+            <i class="fa-solid fa-circle-check"></i>
+            <span id="intentBadgeText"></span>
+          </div>
+
           <div class="form-group">
-            <label>Username</label>
-            <input class="form-control" type="text" name="username"
-                   placeholder="Choose a username" required
-                   value="{{ form.username or '' }}" minlength="3" maxlength="50" />
+            <label>Age Preference</label>
+            <div class="range-display" id="agePrefDisplay">18 &ndash; 45 <span>years old</span></div>
+            <div class="dual-range-wrap" id="dualRangeWrap">
+              <div class="dual-range-track">
+                <div class="dual-range-fill" id="dualRangeFill"></div>
+              </div>
+              <input type="range" id="agePrefMin" min="18" max="70" value="18" oninput="updateAgePref()" />
+              <input type="range" id="agePrefMax" min="18" max="70" value="45" oninput="updateAgePref()" />
+            </div>
+            <div class="dual-range-edge-labels"><span>18</span><span>70</span></div>
           </div>
           <div class="form-group">
-            <label>Email</label>
-            <input class="form-control" type="email" name="email"
-                   placeholder="your@email.com" required
-                   value="{{ form.email or '' }}" />
+            <label>Your Date of Birth</label>
+            <input class="form-control" type="date" id="dobInput"
+                   max="{{ max_dob }}" value="{{ form.dob or '' }}"
+                   oninput="syncDob()" />
+            <div style="font-size:0.75rem;color:var(--ink-light);margin-top:0.3rem;">
+              You must be 18 or older to register.
+            </div>
+          </div>
+          <div class="wizard-nav">
+            <button type="button" class="btn-wizard-next" id="btnStep1" onclick="goStep(2)" disabled>
+              NEXT &rarr;
+            </button>
+          </div>
+          <div class="signin-link">Already a member? <a href="/login">Sign in</a></div>
+        </div>
+
+        <!-- STEP 2: Distance -->
+        <div class="step-panel" id="step2">
+          <div class="form-group">
+            <label>How far are you willing to search?</label>
+            <div class="range-display" id="distDisplay">50 <span>km away</span></div>
+            <input type="range" id="distSlider" min="10" max="500" step="10" value="50"
+                   oninput="updateDist()" />
+            <div class="slider-labels"><span>10 km</span><span>500 km</span></div>
+          </div>
+          <p style="font-size:0.78rem;color:var(--ink-light);margin-bottom:0.8rem;">Or pick a preset:</p>
+          <div class="distance-options">
+            <button type="button" class="distance-btn" data-val="25" onclick="setDist(25,this)"><strong>25</strong> km</button>
+            <button type="button" class="distance-btn selected" data-val="50" onclick="setDist(50,this)"><strong>50</strong> km</button>
+            <button type="button" class="distance-btn" data-val="100" onclick="setDist(100,this)"><strong>100</strong> km</button>
+            <button type="button" class="distance-btn" data-val="200" onclick="setDist(200,this)"><strong>200</strong> km</button>
+            <button type="button" class="distance-btn" data-val="500" onclick="setDist(500,this)"><strong>500</strong> km</button>
+            <button type="button" class="distance-btn" data-val="9999" onclick="setDist(9999,this)"><strong>Any</strong></button>
+          </div>
+          <div class="wizard-nav">
+            <button type="button" class="btn-wizard-back" onclick="goStep(1)">&larr;</button>
+            <button type="button" class="btn-wizard-next" onclick="goStep(3)">NEXT &rarr;</button>
           </div>
         </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Password</label>
-            <input class="form-control" type="password" name="password"
-                   placeholder="Min. 6 characters" required minlength="6" />
-          </div>
-          <div class="form-group">
-            <label>Confirm Password</label>
-            <input class="form-control" type="password" name="confirm_password"
-                   placeholder="Repeat password" required minlength="6" />
-          </div>
-        </div>
 
-        <p class="section-label">Profile <span style="font-weight:300;letter-spacing:0;text-transform:none;font-size:0.75rem;">&nbsp;— optional, can be filled later</span></p>
-        <div class="two-col">
+        <!-- STEP 3: Account details -->
+        <div class="step-panel" id="step3">
           <div class="form-group">
             <label>Full Name</label>
             <input class="form-control" type="text" name="full_name"
                    placeholder="Your full name" value="{{ form.full_name or '' }}" />
           </div>
-          <div class="form-group">
-            <label>Age</label>
-            <input class="form-control" type="number" name="age"
-                   placeholder="Your age" value="{{ form.age or '' }}" min="18" max="100" />
+          <div class="two-col">
+            <div class="form-group">
+              <label>Username</label>
+              <input class="form-control" type="text" name="username" placeholder="Choose a username"
+                     required value="{{ form.username or '' }}" minlength="3" maxlength="50"
+                     oninput="checkStep3()" />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input class="form-control" type="email" name="email" placeholder="your@email.com"
+                     required value="{{ form.email or '' }}" oninput="checkStep3()" />
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="form-group">
+              <label>Password</label>
+              <input class="form-control" type="password" name="password"
+                     placeholder="Min. 6 characters" required minlength="6" oninput="checkStep3()" />
+            </div>
+            <div class="form-group">
+              <label>Confirm Password</label>
+              <input class="form-control" type="password" name="confirm_password"
+                     placeholder="Repeat password" required minlength="6" oninput="checkStep3()" />
+            </div>
+          </div>
+          <div class="wizard-nav">
+            <button type="button" class="btn-wizard-back" onclick="goStep(2)">&larr;</button>
+            <button type="button" class="btn-wizard-next" id="btnStep3" onclick="goStep(4)" disabled>
+              NEXT &rarr;
+            </button>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Location</label>
-          <input class="form-control" type="text" name="location"
-                 placeholder="City, Province" value="{{ form.location or '' }}" />
+        <!-- STEP 4: Location + bio + submit -->
+        <div class="step-panel" id="step4">
+          <div class="form-group">
+            <label>Your Location <span style="font-weight:300;text-transform:none;letter-spacing:0;font-size:0.75rem;">— optional</span></label>
+            <input class="form-control" type="text" name="location" id="locationInput"
+                   placeholder="Type to search city..." value="{{ form.location or '' }}"
+                   autocomplete="off" list="phCitiesList" />
+            <datalist id="phCitiesList">
+              <option value="Caloocan">
+              <option value="Las Piñas">
+              <option value="Makati">
+              <option value="Malabon">
+              <option value="Mandaluyong">
+              <option value="Manila">
+              <option value="Marikina">
+              <option value="Muntinlupa">
+              <option value="Navotas">
+              <option value="Parañaque">
+              <option value="Pasay">
+              <option value="Pasig">
+              <option value="Pateros">
+              <option value="Quezon City">
+              <option value="San Juan">
+              <option value="Taguig">
+              <option value="Valenzuela">
+              <option value="Angeles">
+              <option value="Antipolo">
+              <option value="Bacolod">
+              <option value="Bacoor">
+              <option value="Baguio">
+              <option value="Batangas City">
+              <option value="Biñan">
+              <option value="Butuan">
+              <option value="Cabanatuan">
+              <option value="Cadiz">
+              <option value="Cagayan de Oro">
+              <option value="Calamba">
+              <option value="Calapan">
+              <option value="Calbayog">
+              <option value="Candon">
+              <option value="Canlaon">
+              <option value="Cauayan">
+              <option value="Cavite City">
+              <option value="Cebu City">
+              <option value="Cotabato City">
+              <option value="Dagupan">
+              <option value="Danao">
+              <option value="Dapitan">
+              <option value="Davao City">
+              <option value="Digos">
+              <option value="Dipolog">
+              <option value="Dumaguete">
+              <option value="El Salvador">
+              <option value="Escalante">
+              <option value="Gapan">
+              <option value="General Santos">
+              <option value="General Trias">
+              <option value="Gingoog">
+              <option value="Guihulngan">
+              <option value="Himamaylan">
+              <option value="Ilagan">
+              <option value="Iligan">
+              <option value="Iloilo City">
+              <option value="Imus">
+              <option value="Iriga">
+              <option value="Isabela">
+              <option value="Kabankalan">
+              <option value="Kidapawan">
+              <option value="Koronadal">
+              <option value="La Carlota">
+              <option value="Lapu-Lapu">
+              <option value="Laoag">
+              <option value="Legazpi">
+              <option value value="Ligao">
+              <option value="Lipa">
+              <option value="Lucena">
+              <option value="Maasin">
+              <option value="Mabalacat">
+              <option value="Malolos">
+              <option value="Mandaluyong">
+              <option value="Mandaue">
+              <option value="Marawi">
+              <option value="Masbate City">
+              <option value="Mati">
+              <option value="Meycauayan">
+              <option value="Muñoz">
+              <option value="Naga">
+              <option value="Olongapo">
+              <option value="Ormoc">
+              <option value value="Oroquieta">
+              <option value="Ozamiz">
+              <option value="Pagadian">
+              <option value="Palayan">
+              <option value="Panabo">
+              <option value="Puerto Princesa">
+              <option value="Roxas City">
+              <option value="Sagay">
+              <option value="San Carlos (Negros Occidental)">
+              <option value="San Carlos (Pangasinan)">
+              <option value="San Fernando (La Union)">
+              <option value="San Fernando (Pampanga)">
+              <option value="San Jose">
+              <option value="San Jose del Monte">
+              <option value="San Pablo">
+              <option value="Santa Rosa">
+              <option value="Santiago">
+              <option value="Silay">
+              <option value="Sipalay">
+              <option value="Sorsogon City">
+              <option value="Surigao City">
+              <option value="Tacloban">
+              <option value="Tacurong">
+              <option value="Tagaytay">
+              <option value="Tagbilaran">
+              <option value="Tangub">
+              <option value="Tarlac City">
+              <option value="Tayabas">
+              <option value="Toledo">
+              <option value="Trece Martires">
+              <option value="Tuguegarao">
+              <option value="Urdaneta">
+              <option value="Valencia">
+              <option value="Victorias">
+              <option value="Vigan">
+              <option value="Zamboanga City">
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label>About Me <span style="font-weight:300;text-transform:none;letter-spacing:0;font-size:0.75rem;">— optional</span></label>
+            <textarea class="form-control" name="bio" rows="3"
+                      placeholder="A short intro about yourself...">{{ form.bio or '' }}</textarea>
+          </div>
+
+          <div class="notice" id="reviewNotice" style="background:var(--crimson-soft);border-color:rgba(139,26,46,0.2);"></div>
+
+          <div class="notice">
+            By registering you confirm you are <strong>18 years or older</strong> and agree to our
+            Terms of Service and Privacy Policy.
+          </div>
+
+          <div class="wizard-nav">
+            <button type="button" class="btn-wizard-back" onclick="goStep(3)">&larr;</button>
+            <button type="submit" class="btn-wizard-next">Create My Account</button>
+          </div>
         </div>
 
-        <div class="notice">
-          By registering you confirm you are <strong>18 years or older</strong> and agree to our Terms of Service and Privacy Policy.
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-block">
-          Create My Account
-        </button>
       </form>
 
-      <p class="text-center mt-2 text-muted">
-        Already have an account? <a href="/login" style="color:var(--crimson);font-weight:500;">Sign in</a>
-      </p>
+      <div class="step-dots" id="stepDots">
+        <div class="step-dot active" data-step="1"></div>
+        <div class="step-dot" data-step="2"></div>
+        <div class="step-dot" data-step="3"></div>
+        <div class="step-dot" data-step="4"></div>
+      </div>
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  const STEPS = 4;
+  let currentStep = 1;
+
+  const intentGenderMap = {
+    "man-looking-for-woman": "male",
+    "woman-looking-for-man": "female",
+    "others":                "other",
+  };
+  const intentLabels = {
+    "man-looking-for-woman": "Man looking for a Woman",
+    "woman-looking-for-man": "Woman looking for a Man",
+    "others":                "Others",
+  };
+
+  const stepMeta = {
+    1: { label:"Step 1 of 4", title:"Your Preferences", desc:"Set the age range you're looking for and your date of birth" },
+    2: { label:"Step 2 of 4", title:"Distance",         desc:"How far are you willing to search for a match?" },
+    3: { label:"Step 3 of 4", title:"My Details",       desc:"Create your account credentials" },
+    4: { label:"Step 4 of 4", title:"Almost There",     desc:"Add a few more details and create your account" },
+  };
+
+  // Read intent from URL and set hidden fields immediately
+  const urlIntent = new URLSearchParams(window.location.search).get('intent') || '';
+  if (urlIntent) {
+    document.getElementById('hIntent').value = urlIntent;
+    document.getElementById('hGender').value = intentGenderMap[urlIntent] || 'other';
+    // Show the badge
+    const badge = document.getElementById('intentBadge');
+    badge.style.display = 'inline-flex';
+    document.getElementById('intentBadgeText').textContent = intentLabels[urlIntent] || urlIntent;
+  }
+
+  // Age pref sliders
+  window.updateAgePref = function () {
+    let mn = parseInt(document.getElementById('agePrefMin').value);
+    let mx = parseInt(document.getElementById('agePrefMax').value);
+    // Prevent handles crossing
+    if (mn > mx) {
+      if (this === document.getElementById('agePrefMin')) {
+        mn = mx; document.getElementById('agePrefMin').value = mx;
+      } else {
+        mx = mn; document.getElementById('agePrefMax').value = mn;
+      }
+    }
+    document.getElementById('agePrefDisplay').innerHTML = mn + ' &ndash; ' + mx + ' <span>years old</span>';
+    document.getElementById('hAgePrefMin').value = mn;
+    document.getElementById('hAgePrefMax').value = mx;
+    // Update fill bar
+    const pct = (v) => ((v - 18) / (70 - 18)) * 100;
+    const fill = document.getElementById('dualRangeFill');
+    fill.style.left  = pct(mn) + '%';
+    fill.style.width = (pct(mx) - pct(mn)) + '%';
+    checkStep1();
+  };
+
+  window.syncDob = function () {
+    document.getElementById('hDob').value = document.getElementById('dobInput').value;
+    checkStep1();
+  };
+
+  function checkStep1() {
+    document.getElementById('btnStep1').disabled = !document.getElementById('dobInput').value;
+  }
+
+  // Distance
+  window.updateDist = function () {
+    const v = parseInt(document.getElementById('distSlider').value);
+    document.getElementById('hDistance').value = v;
+    document.getElementById('distDisplay').innerHTML =
+      v >= 9999 ? 'Any <span>distance</span>' : v + ' <span>km away</span>';
+    document.querySelectorAll('.distance-btn').forEach(b => {
+      b.classList.toggle('selected', parseInt(b.dataset.val) === v);
+    });
+  };
+
+  window.setDist = function (val, btn) {
+    document.getElementById('distSlider').value = val;
+    document.getElementById('hDistance').value  = val;
+    document.getElementById('distDisplay').innerHTML =
+      val >= 9999 ? 'Any <span>distance</span>' : val + ' <span>km away</span>';
+    document.querySelectorAll('.distance-btn').forEach(b => b.classList.remove('selected'));
+    if (btn) btn.classList.add('selected');
+  };
+
+  // Details validation
+  window.checkStep3 = function () {
+    const u  = document.querySelector('[name="username"]').value.trim();
+    const e  = document.querySelector('[name="email"]').value.trim();
+    const p  = document.querySelector('[name="password"]').value;
+    const cp = document.querySelector('[name="confirm_password"]').value;
+    document.getElementById('btnStep3').disabled = !(u.length >= 3 && e && p.length >= 6 && p === cp);
+  };
+
+  // Navigation
+  window.goStep = function (n) {
+    if (n < 1 || n > STEPS) return;
+    if (n === 4) buildReview();
+
+    document.getElementById('step' + currentStep).classList.remove('active');
+    document.getElementById('step' + n).classList.add('active');
+    currentStep = n;
+
+    document.getElementById('progressFill').style.width = ((n / STEPS) * 100) + '%';
+    const m = stepMeta[n];
+    document.getElementById('stepLabel').textContent = m.label;
+    document.getElementById('stepTitle').textContent = m.title;
+    document.getElementById('stepDesc').textContent  = m.desc;
+
+    document.querySelectorAll('.step-dot').forEach(d => {
+      const s = parseInt(d.dataset.step);
+      d.className = 'step-dot' + (s < n ? ' done' : s === n ? ' active' : '');
+    });
+  };
+
+  function buildReview() {
+    const intent  = document.getElementById('hIntent').value;
+    const ageMin  = document.getElementById('hAgePrefMin').value;
+    const ageMax  = document.getElementById('hAgePrefMax').value;
+    const dob     = document.getElementById('hDob').value;
+    const dist    = parseInt(document.getElementById('hDistance').value);
+    const distLbl = dist >= 9999 ? 'Any distance' : dist + ' km';
+    document.getElementById('reviewNotice').innerHTML =
+      '<strong style="color:var(--crimson);">Summary</strong><br>' +
+      (intent ? '<span style="color:var(--ink-mid);">&#8226; I am: <b>' + (intentLabels[intent] || intent) + '</b></span><br>' : '') +
+      '<span style="color:var(--ink-mid);">&#8226; Age preference: <b>' + ageMin + '&ndash;' + ageMax + ' yrs</b></span><br>' +
+      '<span style="color:var(--ink-mid);">&#8226; Date of birth: <b>' + dob + '</b></span><br>' +
+      '<span style="color:var(--ink-mid);">&#8226; Search distance: <b>' + distLbl + '</b></span>';
+  }
+
+  // Init displays
+  updateAgePref();
+  updateDist();
+  checkStep1();
+})();
+</script>
 {% endblock %}
